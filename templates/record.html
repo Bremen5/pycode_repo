@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}記録する{% endblock %}
+{% block header %}セットを記録{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('record') }}" id="record-form">
+
+  <div class="card">
+    <div class="card-title">種目を選ぶ</div>
+    <select name="exercise_id" id="exercise-select" required>
+      <option value="">-- 種目を選択 --</option>
+      {% for cat, exlist in grouped_ex.items() %}
+      <optgroup label="{{ cat }}">
+        {% for ex in exlist %}
+        <option value="{{ ex.id }}" data-unit="{{ ex.unit }}">{{ ex.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="card" id="sets-card" style="display:none;">
+    <div class="card-title">セット数: <span id="set-count-label">1</span></div>
+
+    <div style="display:flex; gap:10px; margin-bottom:16px; align-items:center;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="removeSets()">－</button>
+      <span id="set-count" style="font-size:22px; font-weight:700; flex:1; text-align:center;">1</span>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addSet()">＋</button>
+    </div>
+
+    <div id="sets-container"></div>
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-block" id="submit-btn" style="display:none;">
+    記録する
+  </button>
+</form>
+
+<script>
+  let setCount = 1;
+  let currentUnit = 'reps';
+
+  const exerciseSelect = document.getElementById('exercise-select');
+  const setsCard = document.getElementById('sets-card');
+  const submitBtn = document.getElementById('submit-btn');
+  const setsContainer = document.getElementById('sets-container');
+
+  exerciseSelect.addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (!opt.value) { setsCard.style.display = 'none'; submitBtn.style.display = 'none'; return; }
+    currentUnit = opt.dataset.unit;
+    setsCard.style.display = 'block';
+    submitBtn.style.display = 'flex';
+    setCount = 1;
+    renderSets();
+  });
+
+  function unitLabel(u) { return u === 'reps' ? '回' : '秒'; }
+
+  function renderSets() {
+    setsContainer.innerHTML = '';
+    document.getElementById('set-count').textContent = setCount;
+    document.getElementById('set-count-label').textContent = setCount;
+    for (let i = 1; i <= setCount; i++) {
+      const div = document.createElement('div');
+      div.style.cssText = 'margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #2a2a3e;';
+      div.innerHTML = `
+        <label>セット${i} の${unitLabel(currentUnit)}数</label>
+        <input type="number" name="value_${i}" inputmode="numeric"
+               placeholder="例: ${currentUnit === 'reps' ? 10 : 30}"
+               min="1" max="9999" required
+               style="font-size:24px; font-weight:700; text-align:center;">
+        <label>メモ（任意）</label>
+        <input type="text" name="note_${i}" placeholder="例: キツかった" maxlength="60">
+      `;
+      setsContainer.appendChild(div);
+    }
+  }
+
+  function addSet() {
+    if (setCount < 20) { setCount++; renderSets(); }
+  }
+  function removeSets() {
+    if (setCount > 1) { setCount--; renderSets(); }
+  }
+</script>
+{% endblock %}

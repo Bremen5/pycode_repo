@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}統計{% endblock %}
+{% block header %}統計サマリー{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-tile">
+    <div class="stat-num">{{ total_workouts }}</div>
+    <div class="stat-label">総トレーニング日数</div>
+  </div>
+  <div class="stat-tile">
+    <div class="stat-num">{{ total_sets }}</div>
+    <div class="stat-label">総セット数</div>
+  </div>
+  <div class="stat-tile">
+    <div class="stat-num" style="color:{% if streak >= 7 %}#ffd700{% else %}var(--accent){% endif %};">
+      {{ streak }}
+    </div>
+    <div class="stat-label">連続トレーニング日数 🔥</div>
+  </div>
+  <div class="stat-tile">
+    <div class="stat-num">{{ total_exercises }}</div>
+    <div class="stat-label">登録種目数</div>
+  </div>
+</div>
+
+{% if top5 %}
+<div class="card">
+  <div class="card-title">直近30日 ボリューム上位</div>
+  {% for i, r in top5 | enumerate %}
+  <div class="set-row">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px; font-weight:800; color:
+        {% if i==0 %}#ffd700{% elif i==1 %}#c0c0c0{% elif i==2 %}#cd7f32{% else %}var(--muted){% endif %};">
+        {{ i+1 }}
+      </span>
+      <span style="font-size:15px;">{{ r.name }}</span>
+    </div>
+    <div style="text-align:right;">
+      <span class="set-value">{{ r.vol }}</span>
+      <span class="set-unit">{{ unit_label(r.unit) }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if monthly %}
+<div class="card">
+  <div class="card-title">月別トレーニング日数</div>
+  {% set max_cnt = monthly | map(attribute='cnt') | max %}
+  {% for m in monthly %}
+  <div style="margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+      <span>{{ m.month }}</span>
+      <span style="color:var(--muted);">{{ m.cnt }} 日</span>
+    </div>
+    <div style="background:var(--surface); border-radius:4px; overflow:hidden;">
+      <div style="height:8px; background:var(--accent); border-radius:4px;
+                  width:{{ (m.cnt / max_cnt * 100)|int }}%;"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

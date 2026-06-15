@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}進捗{% endblock %}
+{% block header %}進捗を見る{% endblock %}
+{% block header_sub %}種目を選んでください{% endblock %}
+
+{% block content %}
+{% for cat, exlist in grouped_ex.items() %}
+<div class="section-title">{{ cat }}</div>
+{% for ex in exlist %}
+<a href="{{ url_for('progress', exercise_id=ex.id) }}"
+   style="display:flex; align-items:center; justify-content:space-between;
+          background:var(--card); border-radius:var(--radius); padding:14px 16px;
+          margin-bottom:8px; text-decoration:none; color:var(--text);
+          border:1px solid #2a2a3e;">
+  <span style="font-size:15px; font-weight:600;">{{ ex.name }}</span>
+  <span style="color:var(--muted); font-size:13px;">{{ '回数' if ex.unit=='reps' else '秒数' }} ›</span>
+</a>
+{% endfor %}
+{% endfor %}
+{% endblock %}

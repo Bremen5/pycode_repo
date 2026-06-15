@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}種目管理{% endblock %}
+{% block header %}種目管理{% endblock %}
+
+{% block content %}
+<!-- 追加フォーム -->
+<div class="card">
+  <div class="card-title">種目を追加</div>
+  <form method="POST">
+    <label>種目名</label>
+    <input type="text" name="name" placeholder="例: アーチャープッシュアップ" required maxlength="40">
+
+    <label>カテゴリ</label>
+    <select name="category" required>
+      <option value="">-- 選択 --</option>
+      {% for k, v in categories.items() %}
+      <option value="{{ v }}">{{ v }}</option>
+      {% endfor %}
+    </select>
+
+    <label>単位</label>
+    <select name="unit" required>
+      <option value="">-- 選択 --</option>
+      <option value="reps">回数 (reps)</option>
+      <option value="seconds">秒数 (seconds)</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary btn-block">追加する</button>
+  </form>
+</div>
+
+<!-- 種目一覧 -->
+{% for cat, exlist in grouped_ex.items() %}
+<div class="section-title">{{ cat }}</div>
+{% for ex in exlist %}
+<div style="display:flex; align-items:center; justify-content:space-between;
+            background:var(--card); border-radius:var(--radius); padding:12px 16px;
+            margin-bottom:6px; border:1px solid #2a2a3e;">
+  <span style="font-size:15px;">{{ ex.name }}</span>
+  <span style="color:var(--muted); font-size:12px;">{{ '回' if ex.unit=='reps' else '秒' }}</span>
+</div>
+{% endfor %}
+{% endfor %}
+{% endblock %}

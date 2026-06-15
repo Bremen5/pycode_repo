@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}履歴{% endblock %}
+{% block header %}トレーニング履歴{% endblock %}
+{% block header_sub %}直近 {{ days }} 日間{% endblock %}
+
+{% block content %}
+<div style="display:flex; gap:8px; margin-bottom:16px;">
+  <a href="?days=7"  class="btn btn-sm {% if days==7  %}btn-primary{% else %}btn-ghost{% endif %}">7日</a>
+  <a href="?days=14" class="btn btn-sm {% if days==14 %}btn-primary{% else %}btn-ghost{% endif %}">14日</a>
+  <a href="?days=30" class="btn btn-sm {% if days==30 %}btn-primary{% else %}btn-ghost{% endif %}">30日</a>
+</div>
+
+{% if history_data %}
+  {% for item in history_data %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div style="font-weight:700; font-size:16px;">{{ item.workout.date }}</div>
+      {% if item.workout.notes %}
+      <div class="chip">{{ item.workout.notes[:20] }}</div>
+      {% endif %}
+    </div>
+
+    {% if item.grouped %}
+      {% for ex_name, data in item.grouped.items() %}
+      <div style="margin-bottom:10px;">
+        <div style="font-size:13px; color:var(--accent); margin-bottom:4px;">{{ ex_name }}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          {% set ns = namespace(total=0) %}
+          {% for s in data.sets %}
+          {% set ns.total = ns.total + s.value %}
+          <span style="background:var(--surface); padding:4px 10px; border-radius:20px; font-size:14px;">
+            <span style="color:var(--muted); font-size:11px;">{{ s.set_number }}</span>
+            {{ s.value }}<span style="color:var(--muted); font-size:11px;">{{ unit_label(data.unit) }}</span>
+          </span>
+          {% endfor %}
+          <span style="color:var(--muted); font-size:12px; align-self:center;">
+            合計 {{ ns.total }}{{ unit_label(data.unit) }}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--muted); font-size:13px;">記録なし</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty">
+    <div style="font-size:48px; margin-bottom:12px;">📭</div>
+    この期間の記録はありません。
+  </div>
+{% endif %}
+{% endblock %}

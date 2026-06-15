@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ ex.name }} 進捗{% endblock %}
+{% block header %}{{ ex.name }}{% endblock %}
+{% block header_sub %}{{ ex.category }}{% endblock %}
+
+{% block content %}
+{% if rows %}
+  <div class="stat-grid">
+    <div class="stat-tile">
+      <div class="stat-num">{{ best }}</div>
+      <div class="stat-label">自己ベスト ({{ unit_label(ex.unit) }})</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num">{{ rows|length }}</div>
+      <div class="stat-label">トレーニング日数</div>
+    </div>
+  </div>
+
+  <!-- シンプルな折れ線グラフ (Canvas) -->
+  <div class="card">
+    <div class="card-title">最高記録の推移</div>
+    <canvas id="chart" style="width:100%; height:180px;"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">記録一覧</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <thead>
+          <tr style="color:var(--muted); font-size:12px; text-align:left;">
+            <th style="padding:6px 0;">日付</th>
+            <th style="padding:6px 0; text-align:right;">セット</th>
+            <th style="padding:6px 0; text-align:right;">合計</th>
+            <th style="padding:6px 0; text-align:right;">最高</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr style="border-top:1px solid #2a2a3e;">
+            <td style="padding:10px 0;">{{ r.date }}</td>
+            <td style="padding:10px 0; text-align:right; color:var(--muted);">{{ r.total_sets }}</td>
+            <td style="padding:10px 0; text-align:right;">{{ r.total_volume }}<span style="color:var(--muted);font-size:11px;">{{ unit_label(ex.unit) }}</span></td>
+            <td style="padding:10px 0; text-align:right; color:{% if r.best_set == best %}var(--accent){% else %}var(--text){% endif %}; font-weight:{% if r.best_set == best %}700{% else %}400{% endif %};">
+              {{ r.best_set }}<span style="color:var(--muted);font-size:11px;">{{ unit_label(ex.unit) }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="empty">
+    <div style="font-size:48px; margin-bottom:12px;">📊</div>
+    まだ記録がありません。
+  </div>
+{% endif %}
+
+<a href="{{ url_for('progress_list') }}" class="btn btn-ghost btn-block" style="margin-top:8px;">← 種目一覧へ戻る</a>
+
+<script>
+const labels  = {{ chart_labels | tojson }};
+const bestData = {{ chart_best | tojson }};
+
+const canvas = document.getElementById('chart');
+if (canvas && labels.length > 0) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 180;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const padL=30, padR=10, padT=10, padB=30;
+  const minV = 0;
+  const maxV = Math.max(...bestData) * 1.1 || 10;
+  const toX = i => padL + i * (W - padL - padR) / (labels.length - 1 || 1);
+  const toY = v => padT + (H - padT - padB) * (1 - (v - minV) / (maxV - minV));
+
+  // grid
+  ctx.strokeStyle = '#2a2a3e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + i * (H - padT - padB) / 4;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillStyle = '#666';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(Math.round(maxV - i * (maxV / 4)), 2, y + 4);
+  }
+
+  // line
+  ctx.strokeStyle = '#e94560';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  bestData.forEach((v, i) => {
+    i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v));
+  });
+  ctx.stroke();
+
+  // dots
+  bestData.forEach((v, i) => {
+    ctx.fillStyle = '#e94560';
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(v), 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // x-axis labels (every N)
+  ctx.fillStyle = '#666';
+  ctx.font = '10px sans-serif';
+  const step = Math.ceil(labels.length / 5);
+  labels.forEach((l, i) => {
+    if (i % step === 0 || i === labels.length - 1) {
+      const x = toX(i);
+      ctx.save();
+      ctx.translate(x, H - padB + 14);
+      ctx.rotate(-Math.PI / 6);
+      ctx.fillText(l.slice(5), 0, 0);
+      ctx.restore();
+    }
+  });
+}
+</script>
+{% endblock %}
