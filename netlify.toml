@@ -1,0 +1,102 @@
+# Netlify 設定（無料プラン＝月300クレジットの範囲で運用するための設定）
+# 本番公開1回=15クレジット、転送量1GB=20、リクエスト1万回=2。上限を超えるとサイトが停止するため、
+# 「公開回数」と「転送量」を抑える設定にしている。
+
+[build]
+  publish = "."          # ビルドなしの静的サイト
+  command = ""
+  # 終了コード 0 = ビルドしない / 1 = ビルドする。
+  # main（本番）以外のビルドと、ドキュメント・テストだけの変更ではビルド（＝クレジット消費）しない。
+  ignore = "bash scripts/netlify-ignore.sh"
+
+# ───── 公開したくないファイル（publish = "." のため明示的に404にする） ─────
+[[redirects]]
+  from = "/tests/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/scripts/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/README.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/kabu.py"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# ───── セキュリティ関連のヘッダー（全ページ） ─────
+# ※Cache-Control はここに書かない（Netlify は複数ルールの同名ヘッダーを連結するため）
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000"
+    Cross-Origin-Opener-Policy = "same-origin"
+    # GA4 を使うため googletagmanager / google-analytics を許可。広告タグを追加するときは、その配信元をここに足す。
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+# ───── CSS・JS・画像：長期キャッシュ（更新はファイル参照の ?v=... を変えて反映する） ─────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ───── HTML：短めのキャッシュ（公開後5分以内に新しい内容が届く） ─────
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/tools/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/about.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/privacy.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/404.html"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

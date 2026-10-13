@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>実質年収 計算ツール｜転職の年収比較を福利厚生込みで（2026年版）｜お金の計算ツール箱</title>
+  <meta name="description" content="2つの求人を、手取り＋福利厚生の「実質年収」と「実質時給」で比較できる無料ツール。社会保険料・所得税・住民税を2026年（令和8年）のルールで自動計算。入力内容は外部に送信されません。">
+  <link rel="canonical" href="https://<サイト名>.netlify.app/tools/jisshitsu-nenshu/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="お金の計算ツール箱">
+  <meta property="og:title" content="実質年収 計算ツール｜転職の年収比較を福利厚生込みで">
+  <meta property="og:description" content="A社とB社の求人を、手取り＋福利厚生の実質年収・実質時給で比較。2026年の税制・保険料率に対応。">
+  <meta property="og:url" content="https://<サイト名>.netlify.app/tools/jisshitsu-nenshu/">
+  <meta property="og:image" content="https://<サイト名>.netlify.app/assets/img/og-jisshitsu-nenshu.webp">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0b5cad">
+  <link rel="icon" href="/assets/img/favicon.svg?v=202610130001" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/common.css?v=202610130001">
+  <link rel="modulepreload" href="/assets/js/calc/salary.js?v=202610130001">
+  <link rel="modulepreload" href="/assets/js/config/rates-2026.js?v=202610130001">
+  <script type="module" src="/assets/js/tools/jisshitsu-nenshu.js?v=202610130001"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "実質年収比較ツール",
+    "url": "https://<サイト名>.netlify.app/tools/jisshitsu-nenshu/",
+    "description": "2つの求人を、手取りと福利厚生を合わせた実質年収・実質時給で比較できる無料ツール。",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "All",
+    "inLanguage": "ja",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+    "publisher": { "@type": "Organization", "name": "お金の計算ツール箱", "url": "https://<サイト名>.netlify.app/" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "実質年収と額面年収の違いは何ですか？", "acceptedAnswer": { "@type": "Answer", "text": "額面年収は会社から支払われる給与の総額で、税金や社会保険料が引かれる前の金額です。実質年収は、そこから税金・社会保険料を引いた手取りに、社宅の会社負担や企業型DCの掛金など、現金以外で受け取る福利厚生の価値を足したものです。" } },
+      { "@type": "Question", "name": "住宅手当と借上げ社宅はどちらが得ですか？", "acceptedAnswer": { "@type": "Answer", "text": "同じ金額なら、一般的に借上げ社宅のほうが手取りは多くなります。住宅手当は給与として所得税・住民税・社会保険料がかかりますが、借上げ社宅の会社負担分は、条件を満たせば課税されないためです。" } },
+      { "@type": "Question", "name": "通勤手当は実質年収に含めますか？", "acceptedAnswer": { "@type": "Answer", "text": "このツールでは含めていません。通勤手当は通勤にかかる実費の補てんだからです。なお、通勤手当は所得税では月15万円まで非課税ですが、社会保険料の計算には含まれるため、手取りをわずかに減らす要因になります。" } },
+      { "@type": "Question", "name": "住民税が実際の金額と違うのはなぜですか？", "acceptedAnswer": { "@type": "Answer", "text": "住民税は前年の所得に対して課税されるため、転職1年目の住民税は前の会社での収入をもとに決まります。このツールは、入力した条件で1年間働いた場合の目安として、同じ年の所得から計算しています。また、自治体ごとの独自の税率や均等割の上乗せは考慮していません。" } },
+      { "@type": "Question", "name": "入力した年収や条件はどこかに送信されますか？", "acceptedAnswer": { "@type": "Answer", "text": "送信されません。計算はすべてお使いのブラウザの中で行われ、入力内容は次回の表示のためにブラウザ内（localStorage）にだけ保存されます。「入力をリセット」ボタンで削除できます。" } }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へスキップ</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="site-logo" href="/">お金の計算ツール箱</a>
+      <nav class="site-nav" aria-label="サイト">
+        <ul>
+          <li><a href="/">ツール一覧</a></li>
+          <li><a href="/about.html">運営者情報</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container">
+    <nav class="breadcrumb" aria-label="パンくずリスト">
+      <ol>
+        <li><a href="/">ホーム</a></li>
+        <li aria-current="page">実質年収比較ツール</li>
+      </ol>
+    </nav>
+
+    <h1>実質年収 計算ツール｜転職の年収比較を福利厚生込みで</h1>
+    <p class="lead">2つの求人（A社・B社）の条件を入れるだけで、税金と社会保険料を引いた手取りに福利厚生を足した「実質年収」と、労働時間で割った「実質時給」を比べられます。2026年（令和8年）分の税制と保険料率に対応しています。</p>
+    <p class="notice" role="note"><strong>🔒 安心して入力できます</strong><span>入力した内容はお使いのブラウザ内だけで計算し、外部には送信しません。次回のために、この端末のブラウザにだけ保存されます。</span></p>
+
+    <noscript><p class="disclaimer">このツールはJavaScriptを使って計算します。ブラウザの設定でJavaScriptを有効にしてください。</p></noscript>
+
+    <form id="calc-form" class="calc" autocomplete="off" novalidate>
+      <h2 id="common-heading">共通の条件</h2>
+      <fieldset>
+        <legend class="visually-hidden">共通の条件</legend>
+        <div class="common-fields">
+          <div class="field">
+            <label for="common-age">年齢</label>
+            <div class="input-unit"><input type="number" id="common-age" name="age" inputmode="numeric" min="15" max="80" step="1" value="30" aria-describedby="common-age-hint"><span>歳</span></div>
+            <span class="hint" id="common-age-hint">40〜64歳は介護保険料がかかります</span>
+          </div>
+          <div class="field">
+            <label for="common-dependents">扶養している家族</label>
+            <select id="common-dependents" name="dependents" aria-describedby="common-dependents-hint">
+              <option value="0">なし</option>
+              <option value="1">1人</option>
+              <option value="2">2人</option>
+              <option value="3">3人</option>
+              <option value="4">4人</option>
+            </select>
+            <span class="hint" id="common-dependents-hint">16歳以上の一般の扶養親族として簡易計算（配偶者を含む）</span>
+          </div>
+          <div class="field">
+            <label for="common-health">健康保険料率（労使合計）</label>
+            <div class="input-unit"><input type="number" id="common-health" name="healthRate" inputmode="decimal" min="0" max="20" step="0.01" value="9.9" aria-describedby="common-health-hint"><span>%</span></div>
+            <span class="hint" id="common-health-hint">初期値は協会けんぽの全国平均（2026年度 9.9%）</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <h2>求人の条件</h2>
+      <p class="hint">金額は「万円」で入力します（例：月給30万5千円 → 30.5）。</p>
+      <div class="offers" id="offers"></div>
+      <p><button type="button" class="button" id="reset-button">入力をリセット</button></p>
+    </form>
+
+    <template id="offer-template">
+      <fieldset class="offer">
+        <legend data-slot="title"></legend>
+        <div class="field">
+          <label data-for="monthlySalary">月給（基本給＋固定手当）</label>
+          <div class="input-unit"><input type="number" data-field="monthlySalary" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="monthlySalary">固定残業代・住宅手当・通勤手当は含めない</span>
+        </div>
+        <div class="field">
+          <span class="label" data-label="bonusMode">賞与の入力方法</span>
+          <div class="choice" role="radiogroup" data-group="bonusMode">
+            <label><input type="radio" data-field="bonusMode" value="months">月給の何ヶ月分</label>
+            <label><input type="radio" data-field="bonusMode" value="amount">年額で入力</label>
+          </div>
+        </div>
+        <div class="field" data-show="bonusMode=months">
+          <label data-for="bonusMonths">賞与（月給の何ヶ月分）</label>
+          <div class="input-unit"><input type="number" data-field="bonusMonths" inputmode="decimal" min="0" max="24" step="0.1"><span>ヶ月分</span></div>
+        </div>
+        <div class="field" data-show="bonusMode=amount">
+          <label data-for="bonusAmount">賞与（年額）</label>
+          <div class="input-unit"><input type="number" data-field="bonusAmount" inputmode="decimal" min="0" step="1"><span>万円</span></div>
+        </div>
+        <div class="field">
+          <span class="label" data-label="hasFixedOvertime">固定残業代</span>
+          <div class="choice">
+            <label><input type="checkbox" data-field="hasFixedOvertime">固定残業代がある</label>
+          </div>
+        </div>
+        <div class="field" data-show="hasFixedOvertime=true">
+          <label data-for="fixedOvertimePay">固定残業代（月額）</label>
+          <div class="input-unit"><input type="number" data-field="fixedOvertimePay" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="fixedOvertimePay">実際の残業代が固定額を超えた分は追加で支払われる前提で計算します</span>
+        </div>
+        <div class="field">
+          <label data-for="overtimeHours">月平均の残業時間</label>
+          <div class="input-unit"><input type="number" data-field="overtimeHours" inputmode="decimal" min="0" max="200" step="1"><span>時間</span></div>
+        </div>
+        <div class="field">
+          <span class="label" data-label="housingMode">住まいの補助</span>
+          <div class="choice" role="radiogroup" data-group="housingMode">
+            <label><input type="radio" data-field="housingMode" value="allowance">住宅手当</label>
+            <label><input type="radio" data-field="housingMode" value="company">借上げ社宅</label>
+          </div>
+        </div>
+        <div class="field" data-show="housingMode=allowance">
+          <label data-for="housingAllowance">住宅手当（月額）</label>
+          <div class="input-unit"><input type="number" data-field="housingAllowance" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="housingAllowance">給与として課税されます</span>
+        </div>
+        <div class="field" data-show="housingMode=company">
+          <label data-for="companyHousing">借上げ社宅の会社負担額（月額）</label>
+          <div class="input-unit"><input type="number" data-field="companyHousing" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="companyHousing">家賃のうち会社が払う額。非課税として計算します</span>
+        </div>
+        <div class="field">
+          <label data-for="commute">通勤手当（月額）</label>
+          <div class="input-unit"><input type="number" data-field="commute" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="commute">実費の補てんなので実質年収には含めません（社会保険料の計算には含まれます）</span>
+        </div>
+        <div class="field">
+          <label data-for="retirement">企業型DC・退職金の積立相当額（年額・任意）</label>
+          <div class="input-unit"><input type="number" data-field="retirement" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+        </div>
+        <div class="field">
+          <label data-for="otherBenefits">その他の福利厚生の年間価値（任意）</label>
+          <div class="input-unit"><input type="number" data-field="otherBenefits" inputmode="decimal" min="0" step="0.1"><span>万円</span></div>
+          <span class="hint" data-hint="otherBenefits">食事補助、資格取得支援、カフェテリアプランなど</span>
+        </div>
+        <div class="field">
+          <label data-for="holidays">年間休日数</label>
+          <div class="input-unit"><input type="number" data-field="holidays" inputmode="numeric" min="0" max="365" step="1"><span>日</span></div>
+        </div>
+        <div class="field">
+          <label data-for="hoursPerDay">1日の所定労働時間</label>
+          <div class="input-unit"><input type="number" data-field="hoursPerDay" inputmode="decimal" min="0" max="24" step="0.25"><span>時間</span></div>
+        </div>
+      </fieldset>
+    </template>
+
+    <section class="result" aria-labelledby="result-heading">
+      <h2 id="result-heading">計算結果</h2>
+      <div class="verdict" id="verdict" role="status" aria-live="polite" aria-atomic="true">
+        <p class="verdict-label">条件を入力すると、ここに結果が表示されます</p>
+      </div>
+      <div class="bars" id="bars" aria-hidden="true"></div>
+      <div id="flow"></div>
+      <p class="disclaimer"><strong>計算結果は目安です。</strong>個別の税額は税務署または税理士にご確認ください。住民税は前年の所得に対して課税されるため、転職1年目の実際の金額とは異なります。</p>
+    </section>
+
+    <aside class="ad-slot" aria-label="広告">
+      <span class="ad-label">PR</span>
+      <p><!-- アフィリエイト広告（転職サービスなど）のプレースホルダー。掲載時は「PR」表記を残すこと --> 転職サービスの広告枠（準備中）</p>
+    </aside>
+
+    <article class="article" aria-labelledby="article-heading">
+      <h2 id="article-heading">実質年収とは？転職の年収比較で見るべきポイント</h2>
+      <p>求人票に書かれている「年収500万円」は、税金や社会保険料が引かれる前の<strong>額面年収</strong>です。実際に使えるお金は手取りであり、さらに社宅や企業型DC（確定拠出年金）のように、給与明細には現れない形で受け取っている価値もあります。そこで、手取りに福利厚生の価値を足したものを、このツールでは<strong>実質年収</strong>と呼んでいます。</p>
+      <p>額面が同じでも、住まいの補助が「住宅手当」か「借上げ社宅」か、賞与が多いか少ないか、年間休日が何日かによって、実質的な豊かさは大きく変わります。転職で年収を比較するときは、額面だけでなく、実質年収と実質時給の両方を見るのがおすすめです。</p>
+
+      <h3>転職の年収比較で見落としやすい福利厚生</h3>
+      <ul>
+        <li><strong>住宅手当と借上げ社宅の違い</strong>：住宅手当は給与として扱われ、所得税・住民税・社会保険料がかかります。借上げ社宅の会社負担分は、条件を満たせば課税されません。同じ月3万円でも、手取りに残る額は社宅のほうが多くなります。</li>
+        <li><strong>企業型DC・退職金</strong>：会社が積み立てる掛金は、今すぐ使えるお金ではありませんが、将来の資産になります。退職金制度の有無や企業型DCの掛金は、年額にすると数十万円の差になることもあります。</li>
+        <li><strong>固定残業代</strong>：月給に「固定残業代◯時間分」が含まれていると、額面は高く見えます。基本給が低くなっていないか、想定以上の残業がないかを確認しましょう。</li>
+        <li><strong>年間休日</strong>：年間休日105日と125日では、所定労働日数に20日（約160時間）の差があります。年収が同じなら、休日が多いほど実質時給は高くなります。</li>
+        <li><strong>食事補助・資格支援など</strong>：金額は小さくても毎月の支出を減らす制度は、年間で見ると無視できません。「その他の福利厚生」に年間の目安額を入力してください。</li>
+      </ul>
+
+      <h3>手取り シミュレーションの計算方法と前提条件</h3>
+      <p>このツールは、次の流れで計算しています。数値はすべて2026年（令和8年）分のルールです。</p>
+      <ol>
+        <li><strong>額面年収</strong> ＝ 月給×12 ＋ 賞与 ＋ 残業代 ＋ 課税される手当（住宅手当など）</li>
+        <li><strong>社会保険料</strong> ＝ 健康保険 ＋ 介護保険（40〜64歳）＋ 子ども・子育て支援金 ＋ 厚生年金 ＋ 雇用保険。標準報酬月額の等級表と、厚生年金の上限（月65万円）、賞与の上限（厚生年金は1回150万円、健康保険は年573万円）を反映しています。</li>
+        <li><strong>所得税</strong> ＝ 給与所得控除（最低74万円）を引き、基礎控除（所得に応じて最大104万円）と社会保険料控除を引いた課税所得に、速算表の税率をかけ、復興特別所得税（2.1%）を加えます。</li>
+        <li><strong>住民税</strong> ＝ 所得割10% ＋ 均等割（森林環境税を含む5,000円）の簡易計算です。</li>
+        <li><strong>手取り年収</strong> ＝ 額面 − 社会保険料 − 所得税 − 住民税</li>
+        <li><strong>実質年収</strong> ＝ 手取り ＋ 社宅の会社負担分 ＋ DC・退職金の積立相当額 ＋ その他の福利厚生</li>
+        <li><strong>実質時給</strong> ＝ 実質年収 ÷ 年間総労働時間（（365 − 年間休日）× 所定労働時間 ＋ 残業時間 × 12）</li>
+      </ol>
+      <p>残業代は「月給 ÷ 月平均の所定労働時間 × 1.25」で計算しています（月60時間を超える部分の割増率1.5倍や、深夜・休日の割増は考慮していません）。賞与は年2回に分けて支給される前提です。生命保険料控除、iDeCo、ふるさと納税、配偶者控除の所得制限などの個別の事情は含まないため、結果は目安としてご利用ください。</p>
+
+      <h3>住民税は「前年の所得」で決まる点に注意</h3>
+      <p>住民税は、前の年（1〜12月）の所得をもとに、翌年6月から1年間かけて納めます。そのため転職1年目は、前の会社の収入で計算された住民税を払うことになります。このツールの住民税は、「入力した条件で1年間働き続けた場合」の目安です。転職直後の手取りを正確に知りたい場合は、前年の源泉徴収票や住民税の決定通知書も確認しましょう。</p>
+
+      <h2>よくある質問（FAQ）</h2>
+      <div class="faq">
+        <details>
+          <summary>実質年収と額面年収の違いは何ですか？</summary>
+          <p>額面年収は会社から支払われる給与の総額で、税金や社会保険料が引かれる前の金額です。実質年収は、そこから税金・社会保険料を引いた手取りに、社宅の会社負担や企業型DCの掛金など、現金以外で受け取る福利厚生の価値を足したものです。</p>
+        </details>
+        <details>
+          <summary>住宅手当と借上げ社宅はどちらが得ですか？</summary>
+          <p>同じ金額なら、一般的に借上げ社宅のほうが手取りは多くなります。住宅手当は給与として所得税・住民税・社会保険料がかかりますが、借上げ社宅の会社負担分は、条件を満たせば課税されないためです。ただし、社宅は物件や退去の条件に制約があることも考えておきましょう。</p>
+        </details>
+        <details>
+          <summary>通勤手当は実質年収に含めますか？</summary>
+          <p>このツールでは含めていません。通勤手当は通勤にかかる実費の補てんだからです。なお、通勤手当は所得税では月15万円まで非課税ですが、社会保険料の計算には含まれるため、手取りをわずかに減らす要因になります。</p>
+        </details>
+        <details>
+          <summary>住民税が実際の金額と違うのはなぜですか？</summary>
+          <p>住民税は前年の所得に対して課税されるため、転職1年目の住民税は前の会社での収入をもとに決まります。このツールは、入力した条件で1年間働いた場合の目安として、同じ年の所得から計算しています。また、自治体ごとの独自の税率や均等割の上乗せは考慮していません。</p>
+        </details>
+        <details>
+          <summary>入力した年収や条件はどこかに送信されますか？</summary>
+          <p>送信されません。計算はすべてお使いのブラウザの中で行われ、入力内容は次回の表示のためにブラウザ内（localStorage）にだけ保存されます。「入力をリセット」ボタンで削除できます。</p>
+        </details>
+      </div>
+      <p class="hint">税率・保険料率の出典：国税庁、日本年金機構、全国健康保険協会（協会けんぽ）、厚生労働省の公表資料（2026年10月確認）。</p>
+    </article>
+
+    <aside class="ad-slot" aria-label="広告">
+      <span class="ad-label">PR</span>
+      <p><!-- アフィリエイト広告のプレースホルダー。掲載時は「PR」表記を残すこと --> おすすめサービスの広告枠（準備中）</p>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <ul>
+        <li><a href="/">ツール一覧</a></li>
+        <li><a href="/about.html">運営者情報・免責事項</a></li>
+        <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      </ul>
+      <p>当サイトはアフィリエイト広告を利用しています。 © <span data-year>2026</span> お金の計算ツール箱</p>
+    </div>
+  </footer>
+</body>
+</html>

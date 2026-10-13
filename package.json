@@ -1,0 +1,12 @@
+{
+  "name": "okane-tools",
+  "private": true,
+  "type": "module",
+  "description": "お金の計算ツール集（ビルド不要の静的サイト）",
+  "scripts": {
+    "test": "node --test",
+    "serve": "npx serve .",
+    "sync": "node scripts/sync-site.mjs",
+    "size": "node scripts/measure-size.mjs"
+  }
+}
