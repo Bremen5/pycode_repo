@@ -7,7 +7,7 @@ import { fmtNum } from './lib/units.mjs';
 
 const W = 420;
 const H = 250;
-const M = { top: 22, right: 10, bottom: 26, left: 42 };
+const M = { top: 22, right: 10, bottom: 26, left: 48 };
 
 /** 軸の表示単位（グラフ内の数値は見やすい単位に丸める） */
 export function axisUnit(kind) {
