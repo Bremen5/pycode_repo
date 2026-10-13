@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{canonical}}">
+{{robots}}
+<meta property="og:type" content="{{ogType}}">
+<meta property="og:site_name" content="{{siteName}}">
+<meta property="og:title" content="{{ogTitle}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f3d5e">
+<link rel="icon" href="/assets/{{faviconFile}}" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/{{cssFile}}">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ga4Id}}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ga4Id}}');</script>
+{{jsonLd}}
+</head>
+<body>
+<a class="skip" href="#main">本文へスキップ</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/"><img src="/assets/{{faviconFile}}" alt="" width="28" height="28"><span>{{siteName}}</span></a>
+    <nav aria-label="メインメニュー">
+      <a href="/">最新週</a>
+      <a href="/weekly/">過去の週</a>
+      <a href="/guide/">ガイド</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout{{layoutClass}}">
+<main id="main">
+{{breadcrumb}}
+{{content}}
+</main>
+{{sidebar}}
+</div>
+<footer class="site-footer">
+  <div class="wrap">
+    <p class="source">出典：<a href="{{sourceUrl}}" rel="noopener">{{sourceLabel}}</a>{{extraSource}}</p>
+    <p class="disclaimer">{{disclaimerShort}}掲載内容の正確性には注意を払っていますが、その完全性を保証するものではありません。</p>
+    <nav aria-label="サイト情報">
+      <a href="/about.html">運営者情報</a>
+      <a href="/privacy.html">プライバシーポリシー</a>
+      <a href="/disclaimer.html">免責事項</a>
+      <a href="/sitemap.xml">サイトマップ</a>
+    </nav>
+    <p class="copy">© {{year}} {{siteName}}</p>
+  </div>
+</footer>
+</body>
+</html>

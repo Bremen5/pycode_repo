@@ -1,0 +1,105 @@
+# EIA週間石油在庫のデータ取得と下書き作成
+#
+# EIAの発表：通常 水曜10:30（米東部時間）＝ 日本時間 木曜0:30（米国夏時間中は水曜23:30）
+#   - 日本時間 木曜 8:00 に実行（cron は UTC で書く → 水曜 23:00 UTC）
+#   - 祝日などで遅れた週に備え、日本時間 金曜 8:00 にも実行（木曜 23:00 UTC）
+#     金曜の実行で、発表済みのはずの週のデータが無い場合はジョブを失敗させ、通知で気づけるようにする
+#
+# 取得したデータと下書きは develop ブランチにコミットする（main には push しない）
+name: fetch-weekly
+
+on:
+  schedule:
+    - cron: '0 23 * * 3' # 日本時間 木曜 8:00
+    - cron: '0 23 * * 4' # 日本時間 金曜 8:00（再実行）
+  workflow_dispatch:
+    inputs:
+      weeks:
+        description: 'ページを作る週数（初回は 4）'
+        required: false
+        default: '1'
+      strict:
+        description: '発表済みのはずの週が無ければ失敗させる'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-weekly
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: develop ブランチに切り替える（無ければ main から作る）
+        run: |
+          if git ls-remote --exit-code --heads origin develop >/dev/null; then
+            git checkout -B develop origin/develop
+          else
+            git checkout -b develop
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: EIA API からデータを取得
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: |
+          if [ -z "$EIA_API_KEY" ]; then
+            echo "::error::Secrets に EIA_API_KEY が設定されていません"
+            exit 1
+          fi
+          node scripts/fetch.mjs
+
+      - name: 週ごとのデータを作成
+        id: analyze
+        run: |
+          STRICT=""
+          if [ "${{ github.event.schedule }}" = "0 23 * * 4" ] || [ "${{ inputs.strict }}" = "true" ]; then
+            STRICT="--strict"
+          fi
+          node scripts/analyze.mjs --weeks "${{ inputs.weeks || '1' }}" $STRICT
+
+      - name: 解説の下書きを作成
+        id: draft
+        run: node scripts/draft.mjs
+
+      - name: テストとビルド
+        run: |
+          npm test
+          npm run build
+
+      - name: develop にコミットして push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data content/weekly
+          if git diff --cached --quiet; then
+            echo "変更はありません"
+            exit 0
+          fi
+          LATEST="${{ steps.analyze.outputs.latest }}"
+          DRAFTS="${{ steps.draft.outputs.drafts }}"
+          git commit -m "data: EIA週間データ更新（最新 ${LATEST:-なし}）${DRAFTS:+ / 下書き ${DRAFTS}}"
+          git push origin develop
+
+      - name: 結果のまとめ
+        if: always()
+        run: |
+          {
+            echo "### EIA週間データ取得"
+            echo "- 最新週: ${{ steps.analyze.outputs.latest || '（なし）' }}"
+            echo "- 新しく作った週: ${{ steps.analyze.outputs.created || '（なし）' }}"
+            echo "- 下書き: ${{ steps.draft.outputs.drafts || '（なし）' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

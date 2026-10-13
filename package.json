@@ -1,0 +1,20 @@
+{
+  "name": "eia-weekly-ja",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EIA週間石油在庫統計の日本語解説サイト（静的サイトジェネレーター）",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "fetch": "node scripts/fetch.mjs",
+    "analyze": "node scripts/analyze.mjs",
+    "draft": "node scripts/draft.mjs",
+    "update": "node scripts/fetch.mjs && node scripts/analyze.mjs && node scripts/draft.mjs",
+    "verify-series": "node scripts/verify-series.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/build.mjs --drafts --out dist-preview",
+    "test": "node --test \"tests/**/*.test.mjs\""
+  }
+}
