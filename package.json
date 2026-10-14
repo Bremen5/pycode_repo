@@ -15,6 +15,8 @@
     "verify-series": "node scripts/verify-series.mjs",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/build.mjs --drafts --out dist-preview",
-    "test": "node --test \"tests/**/*.test.mjs\""
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "demo": "node scripts/demo.mjs",
+    "check:launch": "node scripts/check-launch.mjs"
   }
 }

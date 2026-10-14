@@ -5,9 +5,9 @@
 import { escapeHtml } from './lib/markdown.mjs';
 import { fmtNum } from './lib/units.mjs';
 
-const W = 420;
-const H = 250;
-const M = { top: 22, right: 10, bottom: 26, left: 48 };
+const W = 360;
+const H = 230;
+const M = { top: 22, right: 8, bottom: 26, left: 40 };
 
 /** 軸の表示単位（グラフ内の数値は見やすい単位に丸める） */
 export function axisUnit(kind) {
@@ -50,7 +50,7 @@ function monthLabels(periods, x) {
   // 混み合う場合は間引く（2か月おき）。ラベル同士が近すぎるものも省く
   const thinned = out.length > 7 ? out.filter((_, i) => i % 2 === 0) : out;
   const kept = [];
-  for (const m of thinned) if (!kept.length || m.x - kept.at(-1).x >= (kept.at(-1).label.length > 3 ? 70 : 40)) kept.push(m);
+  for (const m of thinned) if (!kept.length || m.x - kept.at(-1).x >= (kept.at(-1).label.length > 3 ? 64 : 36)) kept.push(m);
   return kept;
 }
 
@@ -116,7 +116,7 @@ export function changeBarChart(a, { weeks = 12, title } = {}) {
   const u = a.kind === 'percent' ? { label: 'ポイント', scale: (v) => v } : { label: a.kind === 'flow' ? '万バレル/日' : '万バレル', scale: (v) => v / 10 };
   const vals = ch.map((c) => u.scale(c.d));
   const { lo, hi, ticks } = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals), 4);
-  const h = 210;
+  const h = 200;
   const iw = W - M.left - M.right;
   const ih = h - M.top - M.bottom;
   const yt = (t) => M.top + ih - ((t - lo) / (hi - lo)) * ih;
@@ -139,7 +139,6 @@ export function changeBarChart(a, { weeks = 12, title } = {}) {
     })
     .join('');
   const lv = u.scale(last.d);
-  const lx = M.left + (ch.length - 1) * slot + slot / 2;
   const ly = lv >= 0 ? yt(lv) - 6 : yt(lv) + 14;
 
   return `<figure class="chart">
@@ -149,10 +148,25 @@ export function changeBarChart(a, { weeks = 12, title } = {}) {
 ${ticks.map((t) => `<line class="${t === 0 ? 'zero' : 'grid'}" x1="${M.left}" x2="${W - M.right}" y1="${f1(yt(t))}" y2="${f1(yt(t))}"/><text class="tick" x="${M.left - 6}" y="${f1(yt(t) + 4)}" text-anchor="end">${fmtNum(t, Math.abs(t) < 10 && t % 1 ? 1 : 0)}</text>`).join('\n')}
 <text class="tick" x="4" y="13">${u.label}</text>
 ${bars}
-<text class="val" x="${f1(lx)}" y="${f1(ly)}" text-anchor="middle">${lv >= 0 ? '+' : '−'}${fmtNum(Math.abs(lv), 1)}</text>
+<text class="val" x="${f1(W - M.right)}" y="${f1(ly)}" text-anchor="end">${lv >= 0 ? '+' : '−'}${fmtNum(Math.abs(lv), 1)}</text>
 <text class="tick" x="${M.left + (slot - bw) / 2}" y="${h - 8}">${ch[0].period.slice(5).replace('-', '/')}</text>
 <text class="tick" x="${W - M.right}" y="${h - 8}" text-anchor="end">${last.period.slice(5).replace('-', '/')}</text>
 </svg>
 <figcaption><span class="key key-up"></span>増加 <span class="key key-down"></span>減少（単位：${u.label}）</figcaption>
 </figure>`;
+}
+
+/** 指標カード用の小さな推移グラフ（直近 n 週） */
+export function sparkline(a, { weeks = 26 } = {}) {
+  const pts = a.recent.slice(-weeks).filter((r) => r.value != null);
+  if (pts.length < 2) return '';
+  const w = 120;
+  const h = 30;
+  const vals = pts.map((r) => r.value);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const x = (i) => 2 + (i / (pts.length - 1)) * (w - 6);
+  const y = (v) => (hi === lo ? h / 2 : 3 + (1 - (v - lo) / (hi - lo)) * (h - 6));
+  const d = pts.map((r, i) => `${f1(x(i))},${f1(y(r.value))}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="直近${pts.length}週の推移"><polyline class="line" points="${d}" vector-effect="non-scaling-stroke"/></svg>`;
 }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { setupTempSite, syntheticSeries } from './helpers/synthetic.mjs';
+import { setupTempSite, syntheticSeries } from '../scripts/lib/synthetic.mjs';
 import { run as analyze } from '../scripts/analyze.mjs';
 import { run as draft, REVIEW_MARK } from '../scripts/draft.mjs';
 import { build, PAGE_BUDGET } from '../scripts/build.mjs';
@@ -56,7 +56,12 @@ test('初回：直近4週分を作り、下書きはビルドに出ない。仕�
   assert.ok(html.includes('<svg'));
   assert.ok(!html.includes(REVIEW_MARK));
   // 次回発表：10/9週は祝日（コロンブスデー）で木曜に遅れる
-  assert.ok(html.includes('2026年10月16日（金）00:00（日本時間）'));
+  assert.ok(html.includes('2026年10月16日（金）00:00'));
+  assert.ok(html.includes('通常より遅れる見込み'));
+
+  const feed = await readFile(path.join(dir, 'dist/feed.xml'), 'utf8');
+  assert.ok(feed.includes(`/weekly/${LAST}/`));
+  assert.ok(!feed.includes('/weekly/2026-09-25/'));
 
   const sitemap = await readFile(path.join(dir, 'dist/sitemap.xml'), 'utf8');
   assert.ok(sitemap.includes(`/weekly/${LAST}/`));

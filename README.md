@@ -29,6 +29,8 @@
 | `npm run build` | `dist/` に出力（下書きの週は出力しない） |
 | `npm run preview` | 下書きも含めて `dist-preview/` に出力（noindex） |
 | `npm test` | 単体テスト（node:test） |
+| `npm run demo` | 架空のデータでデモサイトを `dist-demo/` に出力（表示確認用。data/ は変更しない） |
+| `npm run check:launch` | 公開前チェック（URL・GA4・運営者情報などの仮の値、公開できる週の有無） |
 | `npx serve dist` | ローカルで表示確認 |
 
 ## 初回のセットアップ（ローカル）
@@ -65,6 +67,14 @@ tests/               node:test の単体テスト（合成データを使用）
 - **注目**：過去5年の同じ週の範囲（最小〜最大）を外れた場合
 - **変化大**：週間の変化が、過去5年の週間変化の標準偏差の2倍以上の場合
 - **キロリットル換算**：1バレル＝158.987294928リットル
+
+## 公開前のチェックリスト
+
+1. `config/site.mjs` の `url`・`operator`（運営者名・連絡先）・`ga4Id` を本番の値にする
+2. 広告を契約するまでは `ads.enabled` を `false` にする（仮の広告枠を出さない）
+3. `npm run verify-series` で系列IDを確認し、`npm run fetch` で実データを取得する
+4. 最初の週の解説を仕上げて `draft: false` にする
+5. `npm run check:launch` がすべて通ることを確認する
 
 ## 注意
 

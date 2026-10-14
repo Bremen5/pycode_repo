@@ -3,3 +3,5 @@ dist/
 dist-preview/
 .env
 .DS_Store
+.demo/
+dist-demo/

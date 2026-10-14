@@ -13,28 +13,33 @@
 <meta property="og:description" content="{{description}}">
 <meta property="og:url" content="{{canonical}}">
 <meta property="og:image" content="{{ogImage}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0f3d5e">
-<link rel="icon" href="/assets/{{faviconFile}}" type="image/svg+xml">
+<meta name="theme-color" content="#0b3554">
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="alternate" type="application/atom+xml" title="{{siteName}}" href="/feed.xml">
 <link rel="stylesheet" href="/assets/{{cssFile}}">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ga4Id}}"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ga4Id}}');</script>
+{{analytics}}
 {{jsonLd}}
 </head>
 <body>
 <a class="skip" href="#main">本文へスキップ</a>
+{{banner}}
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/"><img src="/assets/{{faviconFile}}" alt="" width="28" height="28"><span>{{siteName}}</span></a>
-    <nav aria-label="メインメニュー">
-      <a href="/">最新週</a>
-      <a href="/weekly/">過去の週</a>
-      <a href="/guide/">ガイド</a>
+    <a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><span><span class="brand-name">{{siteName}}</span><span class="brand-tag">{{tagline}}</span></span></a>
+    <nav class="gnav" aria-label="メインメニュー">
+      <a href="/"{{navHome}}>最新週</a>
+      <a href="/weekly/"{{navWeekly}}>バックナンバー</a>
+      <a href="/guide/"{{navGuide}}>はじめての方へ</a>
+      <a href="/guide/glossary/"{{navGlossary}}>用語集</a>
     </nav>
   </div>
 </header>
+{{hero}}
 <div class="wrap layout{{layoutClass}}">
 <main id="main">
 {{breadcrumb}}
@@ -44,15 +49,35 @@
 </div>
 <footer class="site-footer">
   <div class="wrap">
-    <p class="source">出典：<a href="{{sourceUrl}}" rel="noopener">{{sourceLabel}}</a>{{extraSource}}</p>
-    <p class="disclaimer">{{disclaimerShort}}掲載内容の正確性には注意を払っていますが、その完全性を保証するものではありません。</p>
-    <nav aria-label="サイト情報">
-      <a href="/about.html">運営者情報</a>
-      <a href="/privacy.html">プライバシーポリシー</a>
-      <a href="/disclaimer.html">免責事項</a>
-      <a href="/sitemap.xml">サイトマップ</a>
-    </nav>
-    <p class="copy">© {{year}} {{siteName}}</p>
+    <div class="footer-grid">
+      <div>
+        <h2>{{siteName}}</h2>
+        <p>{{siteDescription}}</p>
+        <p>出典：<a href="{{sourceUrl}}" rel="noopener">{{sourceLabel}}</a>。本サイトはEIAおよび米国政府とは関係のない、独立した情報サイトです。</p>
+      </div>
+      <div>
+        <h2>コンテンツ</h2>
+        <ul>
+          <li><a href="/">最新週の解説</a></li>
+          <li><a href="/weekly/">バックナンバー</a></li>
+          <li><a href="/guide/">はじめての方へ（ガイド）</a></li>
+          <li><a href="/feed.xml">更新情報（RSS）</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>サイトについて</h2>
+        <ul>
+          <li><a href="/about.html">運営者情報・編集方針</a></li>
+          <li><a href="/privacy.html">プライバシーポリシー</a></li>
+          <li><a href="/disclaimer.html">免責事項</a></li>
+          <li><a href="/sitemap.xml">サイトマップ</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>{{disclaimerShort}}</p>
+      <p>© {{year}} {{siteName}}</p>
+    </div>
   </div>
 </footer>
 </body>

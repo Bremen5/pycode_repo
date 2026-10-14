@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { barrelsToKl, mbblToKl, fmtOkuMan, fmtValue, fmtValueKl, fmtChange, fmtChangeKl } from '../scripts/lib/units.mjs';
+import { barrelsToKl, mbblToKl, fmtOkuMan, fmtValue, fmtValueKl, fmtChange, fmtChangeKl, fmtPct } from '../scripts/lib/units.mjs';
 import { seriesByKey } from '../config/series.mjs';
 
 test('1バレルは158.987294928リットル', () => {
@@ -37,4 +37,11 @@ test('変化量の表示（符号と単位）', () => {
   assert.equal(fmtChange(0.4, seriesByKey.utilization), '+0.4ポイント');
   assert.equal(fmtChange(0, seriesByKey.crude), '±0.0万バレル');
   assert.equal(fmtChangeKl(-3120, seriesByKey.crude), '−49.6万kL');
+});
+
+test('丸めると0になる値には符号を付けない', () => {
+  assert.equal(fmtPct(-0.04), '±0.0%');
+  assert.equal(fmtPct(1.25), '+1.3%');
+  assert.equal(fmtChange(-0.4, seriesByKey.crude), '±0.0万バレル');
+  assert.equal(fmtChange(-0.04, seriesByKey.utilization), '±0.0ポイント');
 });

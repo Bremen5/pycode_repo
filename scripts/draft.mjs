@@ -5,93 +5,155 @@
 import path from 'node:path';
 import { SERIES, seriesByKey } from '../config/series.mjs';
 import { paths, readJson, writeText, listWeeks, existsSync, isMain, setActionOutput } from './lib/io.mjs';
-import { jaDate, jaWeekday } from './lib/dates.mjs';
+import { jaDate } from './lib/dates.mjs';
 import { stringifyFrontMatter } from './lib/markdown.mjs';
-import { fmtNum, fmtValue, fmtValueKl, mbblToKl } from './lib/units.mjs';
+import { fmtNum, fmtOkuMan, mbblToKl } from './lib/units.mjs';
 
 export const REVIEW_MARK = '【要確認】';
 
 const abs1 = (x) => fmtNum(Math.abs(x), 1);
 
-/** 前週比の言い回し（例: '312万バレル減少' / '0.4ポイント上昇' / '横ばい'） */
+// ---------- 数値の言い回し ----------
+
+/** 水準（例: '4億2,685万バレル' / '日量1,289万バレル' / '90.1%'） */
+export function level(a, v = a.value) {
+  if (a.kind === 'percent') return `${fmtNum(v, 1)}%`;
+  if (a.kind === 'flow') return `日量${fmtOkuMan(v * 1000)}バレル`;
+  return `${fmtOkuMan(v * 1000)}バレル`;
+}
+
+/** 変化の量（例: '576.3万バレル' / '1.4ポイント'） */
+export function amount(a, d = a.change) {
+  if (a.kind === 'percent') return `${abs1(d)}ポイント`;
+  return `${abs1(d / 10)}万バレル`;
+}
+
+const upWord = (a) => (a.kind === 'percent' ? '上昇' : '増加');
+const downWord = (a) => (a.kind === 'percent' ? '低下' : '減少');
+const dirWord = (a, d = a.change) => (d > 0 ? upWord(a) : downWord(a));
+
+/** 前週比の言い回し（例: '576.3万バレル減少' / '1.4ポイント上昇' / '横ばい'） */
 export function changePhrase(a) {
   if (a.change == null) return null;
   if (a.change === 0) return '横ばい';
-  if (a.kind === 'percent') return `${abs1(a.change)}ポイント${a.change > 0 ? '上昇' : '低下'}`;
-  const unit = a.kind === 'flow' ? '万バレル/日' : '万バレル';
-  return `${abs1(a.change / 10)}${unit}${a.change > 0 ? '増加' : '減少'}`;
+  return `${amount(a)}${dirWord(a)}`;
 }
 
-/** タイトル用の短い表現（例: '前週比312万バレル減'） */
+/** タイトル用の短い表現（例: '前週比576.3万バレル減'） */
 export function titleChange(a) {
   if (a.change == null) return '';
   if (a.change === 0) return '前週比横ばい';
   return `前週比${abs1(a.change / 10)}万バレル${a.change > 0 ? '増' : '減'}`;
 }
 
-function avgPhrase(a) {
-  if (a.pctAvg5 == null) return null;
-  if (a.kind === 'percent') {
-    const d = a.diffAvg5;
-    if (Math.abs(d) < 0.05) return '過去5年の同じ週の平均とほぼ同じ水準だった';
-    return `過去5年の同じ週の平均を${abs1(d)}ポイント${d > 0 ? '上回った' : '下回った'}`;
-  }
-  if (Math.abs(a.pctAvg5) < 0.05) return '過去5年の同じ週の平均とほぼ同じ水準だった';
-  return `過去5年の同じ週の平均を${abs1(a.pctAvg5)}%${a.pctAvg5 > 0 ? '上回った' : '下回った'}`;
+/** 直近の週ごとの変化（古い順） */
+function weeklyChanges(a) {
+  const out = [];
+  for (let i = 1; i < (a.recent ?? []).length; i++) out.push(a.recent[i].value - a.recent[i - 1].value);
+  return out;
 }
 
-function yoyPhrase(a) {
-  if (a.yoyChange == null) return null;
-  if (a.kind === 'percent') return `前年同週と比べると${abs1(a.yoyChange)}ポイント${a.yoyChange >= 0 ? '高い' : '低い'}`;
-  return `前年同週と比べると${abs1(a.yoyPct)}%${a.yoyChange >= 0 ? '多い' : '少ない'}`;
-}
-
-function rangePhrase(a) {
-  if (a.rangePos === 'above') return '過去5年の同じ週の最大値を上回る水準となった';
-  if (a.rangePos === 'below') return '過去5年の同じ週の最小値を下回る水準となった';
+/**
+ * 連続性の表現（例: '3週連続の減少' / '4週ぶりの増加'）。該当しなければ null
+ */
+export function streakPhrase(a) {
+  const ch = weeklyChanges(a);
+  const last = ch.at(-1);
+  if (!last) return null;
+  const sign = Math.sign(last);
+  let run = 0;
+  for (let i = ch.length - 1; i >= 0 && Math.sign(ch[i]) === sign; i--) run++;
+  if (run >= 2) return `${run}週連続の${dirWord(a, last)}`;
+  let opposite = 0;
+  for (let i = ch.length - 2; i >= 0 && Math.sign(ch[i]) === -sign; i--) opposite++;
+  if (opposite >= 2) return `${opposite + 1}週ぶりの${dirWord(a, last)}`;
   return null;
 }
 
-/** 1系列分の文章 */
-export function seriesSentence(a) {
-  const s = seriesByKey[a.key];
-  const kl = fmtValueKl(a.value, s);
-  const level = `${fmtValue(a.value, s)}${kl ? `（${kl}）` : ''}`;
-  const parts = [];
-  const ch = changePhrase(a);
-  parts.push(`${s.shortJa}は${level}で、前週比${ch === '横ばい' ? 'で横ばいだった' : `で${ch}した`}。`);
-  const y = yoyPhrase(a);
-  const av = avgPhrase(a);
-  if (y && av) parts.push(`${y}水準で、${av}。`);
-  else if (av) parts.push(`${av}。`);
-  const r = rangePhrase(a);
-  if (r) parts.push(`**${r}。**`);
-  if (a.bigMove) parts.push(`**週間の変化幅は過去5年の通常の変動（標準偏差）の約${fmtNum(Math.abs(a.changeZ), 1)}倍と大きかった。**`);
-  return parts.join('');
+/** 過去5年平均との比較（例: '過去5年の同じ週の平均を0.5%下回る水準' ） */
+function vsAvg(a) {
+  if (a.avg5 == null) return null;
+  if (a.kind === 'percent') {
+    if (Math.abs(a.diffAvg5) < 0.05) return '過去5年の同じ週の平均とほぼ同じ水準';
+    return `過去5年の同じ週の平均（${fmtNum(a.avg5, 1)}%）を${abs1(a.diffAvg5)}ポイント${a.diffAvg5 > 0 ? '上回る' : '下回る'}水準`;
+  }
+  if (Math.abs(a.pctAvg5) < 0.05) return '過去5年の同じ週の平均とほぼ同じ水準';
+  return `過去5年の同じ週の平均を${abs1(a.pctAvg5)}%${a.pctAvg5 > 0 ? '上回る' : '下回る'}水準`;
 }
+
+/** 過去5年の範囲を外れたときの一文 */
+function rangeNote(a) {
+  const many = a.kind === 'percent' ? '高い' : '多い';
+  const few = a.kind === 'percent' ? '低い' : '少ない';
+  if (a.rangePos === 'above') return `**この時期としては過去5年で最も${many}水準です（過去5年の同じ週の最大値${level(a, a.max5)}を上回りました）。**`;
+  if (a.rangePos === 'below') return `**この時期としては過去5年で最も${few}水準です（過去5年の同じ週の最小値${level(a, a.min5)}を下回りました）。**`;
+  return '';
+}
+
+function bigMoveNote(a) {
+  if (!a.bigMove) return '';
+  return `**週間の変化幅は、過去5年の通常の変動（標準偏差）の約${fmtNum(Math.abs(a.changeZ), 1)}倍と大きくなりました。**`;
+}
+
+/** 在庫の一文（例: '…は前週から576.3万バレル減り、4億2,685万バレルとなりました。3週連続の減少です。'） */
+function stockSentence(a, name, { kl = false } = {}) {
+  const s = [];
+  const klText = kl ? `（約${fmtOkuMan(mbblToKl(a.value))}kL）` : '';
+  if (a.change === 0) s.push(`${name}は前週から横ばいの${level(a)}${klText}でした。`);
+  else {
+    const chKl = kl ? `（約${abs1(mbblToKl(a.change) / 1e4)}万kL）` : '';
+    s.push(`${name}は前週から${amount(a)}${chKl}${a.change > 0 ? '増え' : '減り'}、${level(a)}${klText}となりました。`);
+  }
+  const st = streakPhrase(a);
+  const av = vsAvg(a);
+  if (st && av) s.push(`${st}で、${av}です。`);
+  else if (st || av) s.push(`${st ?? av}です。`);
+  return s.join('') + rangeNote(a) + bigMoveNote(a);
+}
+
+/** 流量・比率の一文 */
+function flowSentence(a, name) {
+  const s = [`${name}は${level(a)}で、`];
+  s.push(a.change === 0 ? '前週から横ばいでした。' : `前週から${amount(a)}${dirWord(a)}しました。`);
+  const av = vsAvg(a);
+  if (av) s.push(`${av}です。`);
+  return s.join('') + rangeNote(a) + bigMoveNote(a);
+}
+
+/** 「今週のポイント」の1項目 */
+function pointLine(a) {
+  const s = seriesByKey[a.key];
+  const parts = [];
+  if (a.rangePos === 'above') parts.push(`過去5年の同じ週の最大値を上回る水準（${level(a)}）`);
+  if (a.rangePos === 'below') parts.push(`過去5年の同じ週の最小値を下回る水準（${level(a)}）`);
+  if (a.bigMove) parts.push(`前週比${changePhrase(a)}と、変化幅が通常の約${fmtNum(Math.abs(a.changeZ), 1)}倍`);
+  return `- **${s.shortJa}**：${parts.join('。')}`;
+}
+
+// ---------- 下書き全体 ----------
 
 export function buildSummary(w) {
   const { crude, gasoline, distillate, utilization } = w.series;
-  const lines = [];
-  lines.push(`原油在庫（SPR除く）は前週比${changePhrase(crude)}${crude.pctAvg5 != null ? `、${avgPhrase(crude)}` : ''}。`);
-  lines.push(`ガソリン在庫は${changePhrase(gasoline)}、留出油在庫は${changePhrase(distillate)}。`);
-  const hl = SERIES.filter((s) => w.series[s.key]?.highlight).map((s) => s.shortJa);
-  lines.push(
-    `製油所の稼働率は${fmtNum(utilization.value, 1)}%（前週比${changePhrase(utilization)}）。` +
-      (hl.length ? `過去5年と比べて目立つ動き：${hl.slice(0, 3).join('、')}${hl.length > 3 ? 'など' : ''}。` : ''),
-  );
-  return lines;
+  const st = streakPhrase(crude);
+  const av = vsAvg(crude);
+  const l1 = `原油在庫は${changePhrase(crude) === '横ばい' ? '横ばい' : `${amount(crude)}${crude.change > 0 ? '増' : '減'}`}の${level(crude)}。${[st, av].filter(Boolean).join('で、')}${st || av ? '。' : ''}`;
+  const l2 = `ガソリン在庫は${changePhrase(gasoline)}、留出油在庫は${changePhrase(distillate)}。`;
+  const hl = SERIES.filter((s) => s.key !== 'crude' && ['above', 'below'].includes(w.series[s.key]?.rangePos));
+  const extra = hl.length
+    ? `${hl[0].shortJa}は過去5年の同じ週で最も${w.series[hl[0].key].rangePos === 'above' ? (hl[0].kind === 'percent' ? '高い' : '多い') : hl[0].kind === 'percent' ? '低い' : '少ない'}水準。`
+    : '';
+  const l3 = `製油所の稼働率は${fmtNum(utilization.value, 1)}%（前週比${changePhrase(utilization)}）。${extra}`;
+  return [l1, l2, l3];
 }
 
 export function buildDraft(w) {
-  const crude = w.series.crude;
-  const title = `EIA原油在庫 ${jaDate(w.weekEnding)}週｜${titleChange(crude)}`;
+  const S = w.series;
+  const title = `EIA原油在庫 ${jaDate(w.weekEnding)}週｜${titleChange(S.crude)}`;
   const summary = buildSummary(w);
-  const highlights = SERIES.filter((s) => w.series[s.key]?.highlight);
-  const sentence = (k) => seriesSentence(w.series[k]);
+  const highlights = SERIES.filter((s) => S[s.key]?.highlight);
   const r = w.release;
-  const nr = w.nextRelease;
-  const crudeKl = fmtNum(mbblToKl(Math.abs(crude.change ?? 0)) / 1e4, 1);
+  const net = S.imports.value - S.exports.value;
+  const netPrev = S.imports.prev != null && S.exports.prev != null ? S.imports.prev - S.exports.prev : null;
 
   const body = [
     `> ${REVIEW_MARK} この解説は数値から自動生成した下書きです。数値の照合と文章の仕上げが終わるまで公開されません（draft: true）。`,
@@ -99,34 +161,30 @@ export function buildDraft(w) {
     '## 今週のポイント',
     '',
     ...(highlights.length
-      ? highlights.map((s) => `- ${REVIEW_MARK} **${s.shortJa}**：${sentence(s.key)}`)
+      ? highlights.map((s) => pointLine(S[s.key]))
       : ['- 過去5年の同じ週の範囲を外れた項目や、変化が特に大きかった項目はありませんでした。']),
     '',
-    '## 原油',
+    '## 原油：在庫と需給',
     '',
-    `${REVIEW_MARK} EIAが${jaDate(r.etDate)}（米東部時間）に発表した${jaDate(w.weekEnding)}までの週の統計によると、${sentence('crude')}${crude.change ? `前週からの変化量は、キロリットルに換算すると約${crudeKl}万kLにあたる。` : ''}`,
+    `${REVIEW_MARK} EIAが${jaDate(r.jstDate)}（日本時間）に発表した${jaDate(w.weekEnding)}までの週の統計によると、${stockSentence(S.crude, '原油在庫（戦略石油備蓄を除く）', { kl: true })}`,
     '',
-    `${sentence('cushing')}${sentence('spr')}`,
+    `${stockSentence(S.cushing, 'WTI原油先物の受け渡し地点であるクッシングの在庫')}${stockSentence(S.spr, '戦略石油備蓄（SPR）')}`,
     '',
-    `${sentence('production')}${sentence('imports')}${sentence('exports')}`,
+    `${flowSentence(S.production, '原油の生産量')}輸入量は${level(S.imports)}、輸出量は${level(S.exports)}で、輸入から輸出を差し引いた純輸入量は${net >= 0 ? level(S.imports, net) : `日量${fmtOkuMan(-net * 1000)}バレルの輸出超過`}でした${netPrev != null ? `（前週は${level(S.imports, netPrev)}）` : ''}。`,
     '',
-    '## 石油製品',
+    '## 石油製品：ガソリンと留出油',
     '',
-    `${sentence('gasoline')}${sentence('gasolineDemand')}`,
+    `${stockSentence(S.gasoline, 'ガソリン在庫')}${flowSentence(S.gasolineDemand, '需要の目安となるガソリンの製品供給量')}`,
     '',
-    sentence('distillate'),
+    stockSentence(S.distillate, '軽油や暖房油を含む留出油の在庫'),
     '',
     '## 製油所',
     '',
-    sentence('utilization'),
+    flowSentence(S.utilization, '製油所の稼働率'),
     '',
-    '## 背景（人が追記）',
+    '## 背景',
     '',
-    `${REVIEW_MARK} 変化が大きかった項目について、公開情報（EIAの週報本文、ハリケーン・製油所トラブルなどの報道）で確認できる背景があれば、出典を付けて補足する。出典のない推測は書かない。`,
-    '',
-    '## 来週の発表予定',
-    '',
-    `次回（${jaDate(nr.weekEnding)}までの週）の発表は、${jaDate(nr.jstDate)}（${jaWeekday(nr.jstDate)}）${nr.jstTime}（日本時間）の予定です${nr.delayed ? '（米国の祝日のため通常より遅れる見込み）' : ''}。祝日などで変更される場合があるため、EIAの公式スケジュールもご確認ください。`,
+    `${REVIEW_MARK} 変化が大きかった項目について、公開情報（EIAの週報本文、製油所の稼働やハリケーンなどに関する報道）で確認できる背景があれば、出典リンクを付けて補足する。確認できなければこの節を削除する。出典のない推測は書かない。`,
     '',
   ].join('\n');
 

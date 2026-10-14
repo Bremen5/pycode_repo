@@ -59,7 +59,8 @@ export function fmtValueKl(value, series) {
 /** 変化量の表示（符号付き） */
 export function fmtChange(change, series) {
   if (change == null || Number.isNaN(change)) return '—';
-  const sign = change > 0 ? '+' : change < 0 ? '−' : '±';
+  const shown = series.kind === 'percent' ? Math.round(change * 10) / 10 : Math.round(change) / 10;
+  const sign = shown > 0 ? '+' : shown < 0 ? '−' : '±';
   const a = Math.abs(change);
   if (series.kind === 'percent') return `${sign}${fmtNum(a, 1)}ポイント`;
   const unit = series.kind === 'flow' ? 'バレル/日' : 'バレル';
@@ -75,7 +76,8 @@ export function fmtChangeKl(change, series) {
 
 export function fmtPct(p, digits = 1) {
   if (p == null || Number.isNaN(p)) return '—';
-  const sign = p > 0 ? '+' : p < 0 ? '−' : '±';
+  const r = Math.round(p * 10 ** digits) / 10 ** digits;
+  const sign = r > 0 ? '+' : r < 0 ? '−' : '±';
   return `${sign}${fmtNum(Math.abs(p), digits)}%`;
 }
 

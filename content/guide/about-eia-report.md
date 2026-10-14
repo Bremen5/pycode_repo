@@ -1,6 +1,7 @@
 ---
 title: EIA週間石油在庫統計とは？発表元・調査方法・注目される理由
 description: 米エネルギー情報局（EIA）が毎週発表する週間石油在庫統計（Weekly Petroleum Status Report）の概要を、発表元・対象項目・調査方法・注目される理由に分けてわかりやすく解説します。
+shortTitle: EIA週間石油在庫統計とは
 order: 1
 updated: 2026-10-13
 ---
