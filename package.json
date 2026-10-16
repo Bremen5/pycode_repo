@@ -19,6 +19,7 @@
     "preview": "node scripts/build.mjs --drafts --out dist-preview",
     "test": "node --test \"tests/**/*.test.mjs\"",
     "demo": "node scripts/demo.mjs",
-    "check:launch": "node scripts/check-launch.mjs"
+    "check:launch": "node scripts/check-launch.mjs",
+    "study": "node scripts/build-study.mjs"
   }
 }
