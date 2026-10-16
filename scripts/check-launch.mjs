@@ -15,7 +15,11 @@ export async function checkLaunch() {
   if (SITE.ads.enabled && Object.values(SITE.ads.slots).some((s) => s.includes('ad-placeholder'))) {
     warn.push('広告枠が仮の表示のままです。広告を契約するまでは config/site.mjs の ads.enabled を false にすることをおすすめします');
   }
+  if (SITE.prices?.enabled !== false && !SITE.prices?.licenseConfirmed) {
+    issues.push('価格データ（EIAのスポット価格。元データは民間の情報会社）の利用条件が未確認です。確認後に config/site.mjs の prices.licenseConfirmed を true にするか、掲載しない場合は prices.enabled を false にしてください');
+  }
   const p = paths();
+  if (!existsSync(path.join(p.markets, 'dashboard.json'))) warn.push('市場指標のデータがありません（npm run fetch:markets と npm run markets を実行してください）');
   const raw = existsSync(path.join(p.raw, 'crude.json'));
   if (!raw) issues.push('data/raw にデータがありません（npm run fetch を実行してください）');
   const published = await loadWeeks({ log: () => {} });

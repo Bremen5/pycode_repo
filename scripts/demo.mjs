@@ -19,9 +19,12 @@ process.env.WEEKLY_CONTENT_DIR = path.join(work, 'content');
 const { run: analyze } = await import('./analyze.mjs');
 const { run: draft } = await import('./draft.mjs');
 const { build } = await import('./build.mjs');
+const { loadMarketRaw, dashboard } = await import('./markets.mjs');
+const { writeJson } = await import('./lib/io.mjs');
 
 const quiet = () => {};
 await writeSyntheticRaw(process.env.DATA_DIR, latestExpectedWeekEnding(new Date()));
+await writeJson(path.join(process.env.DATA_DIR, 'markets', 'dashboard.json'), dashboard(await loadMarketRaw()));
 await analyze({ weeks: 8, log: quiet });
 await draft({ log: quiet });
 

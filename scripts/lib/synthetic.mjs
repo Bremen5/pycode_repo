@@ -46,13 +46,82 @@ export function syntheticSeries(key, lastWeek, years = 11) {
   return rows;
 }
 
+/** 価格・建玉・世界の需給の架空データ（dataDir/markets/raw） */
+export async function writeSyntheticMarkets(dataDir, lastWeek, { years = 10 } = {}) {
+  const r = rng(424242);
+  const dir = path.join(dataDir, 'markets', 'raw');
+  const days = [];
+  const start = addDays(lastWeek, -Math.round(years * 365.25));
+  for (let d = start; d <= lastWeek; d = addDays(d, 1)) {
+    const wd = new Date(d + 'T00:00:00Z').getUTCDay();
+    if (wd !== 0 && wd !== 6) days.push(d);
+  }
+  let wti = 62;
+  let hh = 3;
+  const P = { wti: [], brent: [], gasolineNYH: [], ulsdNYH: [], henryHub: [], retailGasoline: [], retailDiesel: [] };
+  for (const d of days) {
+    const doy = (Number(d.slice(5, 7)) - 1) / 12;
+    wti += (72 - wti) * 0.004 + (r() - 0.5) * 2.2;
+    hh += (3.2 - hh) * 0.01 + (r() - 0.5) * 0.12 + 0.01 * Math.cos(2 * Math.PI * (doy - 0.05));
+    hh = Math.max(1.6, hh);
+    const brent = wti + 3.6 + (r() - 0.5) * 1.2;
+    const gas = (wti + 22 + 10 * Math.cos(2 * Math.PI * (doy - 0.4)) + (r() - 0.5) * 3) / 42;
+    const ulsd = (wti + 32 + 6 * Math.cos(2 * Math.PI * (doy - 0.95)) + (r() - 0.5) * 3) / 42;
+    P.wti.push({ period: d, value: Math.round(wti * 100) / 100 });
+    P.brent.push({ period: d, value: Math.round(brent * 100) / 100 });
+    P.gasolineNYH.push({ period: d, value: Math.round(gas * 1000) / 1000 });
+    P.ulsdNYH.push({ period: d, value: Math.round(ulsd * 1000) / 1000 });
+    P.henryHub.push({ period: d, value: Math.round(hh * 100) / 100 });
+    if (new Date(d + 'T00:00:00Z').getUTCDay() === 1) {
+      P.retailGasoline.push({ period: d, value: Math.round((gas + 0.95 + (r() - 0.5) * 0.04) * 1000) / 1000 });
+      P.retailDiesel.push({ period: d, value: Math.round((ulsd + 1.25 + (r() - 0.5) * 0.04) * 1000) / 1000 });
+    }
+  }
+  for (const [key, data] of Object.entries(P)) await writeJson(path.join(dir, `${key}.json`), { key, synthetic: true, data });
+
+  // CFTC（火曜時点）
+  const cftc = [];
+  let mm = 220000;
+  for (const d of days) {
+    if (new Date(d + 'T00:00:00Z').getUTCDay() !== 2) continue;
+    mm += (200000 - mm) * 0.05 + (r() - 0.5) * 40000;
+    const short = 60000 + Math.round(r() * 50000);
+    cftc.push({ period: d, oi: 1700000 + Math.round((r() - 0.5) * 200000), mmLong: Math.round(mm + short), mmShort: short, pmLong: 400000, pmShort: 650000, swapLong: 500000, swapShort: 300000 });
+  }
+  await writeJson(path.join(dir, 'cftc.json'), { key: 'cftc', synthetic: true, data: cftc });
+
+  // STEO（月次。2015年1月〜翌年12月）
+  const endYear = Number(lastWeek.slice(0, 4)) + 1;
+  const steo = { worldSupply: [], worldDemand: [], opecCrude: [], usCrude: [], oecdStocks: [] };
+  let stocks = 2850;
+  for (let y = 2015; y <= endYear; y++) {
+    for (let m = 1; m <= 12; m++) {
+      const t = y - 2015 + (m - 1) / 12;
+      const covid = y === 2020 && m >= 3 && m <= 8 ? -14 * Math.sin(((m - 2) / 7) * Math.PI) : 0;
+      const demand = 95 + 0.95 * t + 1.2 * Math.cos(2 * Math.PI * ((m - 1) / 12 - 0.6)) + covid + (r() - 0.5) * 0.4;
+      const supply = demand + (r() - 0.5) * 1.6 + (y === 2020 && m >= 4 && m <= 6 ? 4 : 0);
+      stocks += (supply - demand) * 30 * 0.4;
+      const period = `${y}-${String(m).padStart(2, '0')}`;
+      steo.worldSupply.push({ period, value: Math.round(supply * 100) / 100 });
+      steo.worldDemand.push({ period, value: Math.round(demand * 100) / 100 });
+      steo.opecCrude.push({ period, value: Math.round((30 - (t > 5 ? 3 : 0) + (r() - 0.5) * 0.6) * 100) / 100 });
+      steo.usCrude.push({ period, value: Math.round((9.4 + 0.42 * t - (y === 2020 ? 1.5 : 0)) * 100) / 100 });
+      steo.oecdStocks.push({ period, value: Math.round(stocks) });
+    }
+  }
+  const fetchedAt = new Date(lastWeek + 'T00:00:00Z').toISOString();
+  for (const [key, data] of Object.entries(steo)) await writeJson(path.join(dir, `${key}.json`), { key, synthetic: true, fetchedAt, data });
+}
+
 /** dataDir/raw に全系列の架空データを書く */
-export async function writeSyntheticRaw(dataDir, lastWeek, { omit = {} } = {}) {
+export async function writeSyntheticRaw(dataDir, lastWeek, opts = {}) {
+  const omit = opts.omit ?? {};
   for (const s of SERIES) {
     let data = syntheticSeries(s.key, lastWeek);
     if (omit[s.key]) data = data.filter((d) => !omit[s.key].includes(d.period));
     await writeJson(path.join(dataDir, 'raw', `${s.key}.json`), { key: s.key, seriesId: s.id, synthetic: true, data });
   }
+  if (opts.markets !== false) await writeSyntheticMarkets(dataDir, lastWeek);
 }
 
 /** 一時ディレクトリに data/raw を作り、環境変数を向ける（テスト用） */

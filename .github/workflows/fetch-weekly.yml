@@ -62,6 +62,15 @@ jobs:
           fi
           node scripts/fetch.mjs
 
+      - name: 価格・市場指標を取得（EIA・CFTC）
+        id: markets
+        continue-on-error: true
+        env:
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: |
+          node scripts/fetch-markets.mjs
+          node scripts/markets.mjs
+
       - name: 週ごとのデータを作成
         id: analyze
         run: |
@@ -93,6 +102,12 @@ jobs:
           DRAFTS="${{ steps.draft.outputs.drafts }}"
           git commit -m "data: EIA週間データ更新（最新 ${LATEST:-なし}）${DRAFTS:+ / 下書き ${DRAFTS}}"
           git push origin develop
+
+      - name: 価格・市場指標の取得に失敗していれば通知する
+        if: steps.markets.outcome == 'failure'
+        run: |
+          echo "::error::価格・市場指標の取得に失敗しました（在庫データの処理は完了しています）。ログを確認してください"
+          exit 1
 
       - name: 結果のまとめ
         if: always()

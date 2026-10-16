@@ -33,9 +33,10 @@
     <a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><span><span class="brand-name">{{siteName}}</span><span class="brand-tag">{{tagline}}</span></span></a>
     <nav class="gnav" aria-label="メインメニュー">
       <a href="/"{{navHome}}>最新週</a>
+      <a href="/markets/"{{navMarkets}}>市場指標</a>
+      <a href="/world/"{{navWorld}}>世界の需給</a>
       <a href="/weekly/"{{navWeekly}}>バックナンバー</a>
-      <a href="/guide/"{{navGuide}}>はじめての方へ</a>
-      <a href="/guide/glossary/"{{navGlossary}}>用語集</a>
+      <a href="/guide/"{{navGuide}}>ガイド</a>
     </nav>
   </div>
 </header>
@@ -53,12 +54,14 @@
       <div>
         <h2>{{siteName}}</h2>
         <p>{{siteDescription}}</p>
-        <p>出典：<a href="{{sourceUrl}}" rel="noopener">{{sourceLabel}}</a>。本サイトはEIAおよび米国政府とは関係のない、独立した情報サイトです。</p>
+        <p>出典：<a href="{{sourceUrl}}" rel="noopener">{{sourceLabel}}</a>、<a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" rel="noopener">CFTC</a>ほか（各ページに記載）。本サイトはEIAおよび米国政府とは関係のない、独立した情報サイトです。</p>
       </div>
       <div>
         <h2>コンテンツ</h2>
         <ul>
           <li><a href="/">最新週の解説</a></li>
+          <li><a href="/markets/">原油市場の主要指標</a></li>
+          <li><a href="/world/">世界の石油需給</a></li>
           <li><a href="/weekly/">バックナンバー</a></li>
           <li><a href="/guide/">はじめての方へ（ガイド）</a></li>
           <li><a href="/feed.xml">更新情報（RSS）</a></li>

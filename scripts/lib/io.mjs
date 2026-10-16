@@ -13,6 +13,7 @@ export function paths() {
     root: ROOT,
     raw: path.join(data, 'raw'),
     weekly: path.join(data, 'weekly'),
+    markets: path.join(data, 'markets'),
     weeklyContent: process.env.WEEKLY_CONTENT_DIR
       ? path.resolve(process.env.WEEKLY_CONTENT_DIR)
       : path.join(ROOT, 'content/weekly'),

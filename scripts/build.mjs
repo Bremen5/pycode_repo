@@ -13,6 +13,8 @@ import { jaDate, jaWeekday } from './lib/dates.mjs';
 import { fmtValue, fmtValueKl, fmtChange, fmtChangeKl, fmtPct, fmtNum, unitLabel } from './lib/units.mjs';
 import { seasonalChart, changeBarChart, sparkline } from './charts.mjs';
 import { REVIEW_MARK } from './draft.mjs';
+import { lineChart, barChart } from './charts.mjs';
+import { pricesOn, priceCards, cftcCard, priceTable, cftcTable, wtiBrentChart, cftcChart, marketSourceNote, externalTable } from './lib/market-views.mjs';
 
 export const PAGE_BUDGET = 300 * 1024; // 1ページの合計転送量の上限（自サイト分）
 
@@ -297,6 +299,8 @@ export async function build({ includeDrafts = false, outDir, banner = '', log = 
       navWeekly: nav === 'weekly' ? current : '',
       navGuide: nav === 'guide' ? current : '',
       navGlossary: nav === 'glossary' ? current : '',
+      navMarkets: nav === 'markets' ? current : '',
+      navWorld: nav === 'world' ? current : '',
       sourceUrl: SITE.source.url,
       sourceLabel: e(SITE.source.label),
       disclaimerShort: e(SITE.disclaimerShort),
@@ -328,7 +332,7 @@ export async function build({ includeDrafts = false, outDir, banner = '', log = 
 ${w.fm.summary?.length ? `<section class="summary" aria-labelledby="sum-h"><h2 id="sum-h">今週の要点</h2><ol>${w.fm.summary.map((s) => `<li>${e(s)}</li>`).join('')}</ol></section>` : ''}
 ${kpiCards(d)}
 <ul class="page-toc" aria-label="このページの目次">
-<li><a href="#charts">主要グラフ</a></li><li><a href="#commentary">解説</a></li><li><a href="#table">数値一覧</a></li><li><a href="#all-charts">各項目の推移</a></li><li><a href="#next">次回の発表</a></li>
+<li><a href="#charts">主要グラフ</a></li><li><a href="#commentary">解説</a></li>${d.markets ? '<li><a href="#markets">価格と市場</a></li>' : ''}<li><a href="#table">数値一覧</a></li><li><a href="#all-charts">各項目の推移</a></li><li><a href="#next">次回の発表</a></li>
 </ul>
 <section class="section" id="charts" aria-labelledby="charts-h">
 <h2 id="charts-h">原油在庫の推移</h2>
@@ -342,6 +346,7 @@ ${chartCard(crude, { title: '原油在庫の前週比（直近12週）', chart: 
 ${md.html}
 </section>
 ${adSlot('afterArticle')}
+${weeklyMarketsSection(d)}
 <section class="section" id="table" aria-labelledby="table-h">
 <h2 id="table-h">今週の数値一覧</h2>
 ${dataTable(d)}
@@ -455,6 +460,7 @@ ${chartCard(latest.data.series.utilization)}
 </div>
 <p style="margin-top:12px"><a href="/weekly/${latest.week}/#all-charts">すべての項目のグラフを見る →</a></p>
 </section>
+${topMarkets(latest)}
 <section class="section" aria-labelledby="recent-h"><h2 id="recent-h">最近の解説</h2>${weekListHtml(weeks.slice(0, 6))}${weeks.length > 6 ? '<p style="margin-top:12px"><a href="/weekly/">バックナンバーをすべて見る →</a></p>' : ''}</section>`
     : `<p class="empty">最初の週の解説を準備中です。公開までしばらくお待ちください。</p>`;
 
@@ -468,6 +474,8 @@ ${chartCard(latest.data.series.utilization)}
 <section class="section" aria-labelledby="feat-h"><h2 id="feat-h">このサイトでわかること</h2>
 <ul class="features">
 <li><strong>毎週の在庫の増減</strong><p>原油・ガソリン・留出油の在庫、製油所の稼働率、原油の生産・輸出入など10項目を、毎週日本語でまとめます。</p></li>
+<li><strong>原油価格と市場の動き</strong><p>WTI・ブレントの価格と価格差、精製マージンの目安（クラックスプレッド）、投機筋の建玉を同じ週の数字で並べます。</p></li>
+<li><strong>世界の需給</strong><p>EIAの短期エネルギー見通しから、世界の石油の生産・消費と在庫の増減をグラフで示します。</p></li>
 <li><strong>過去5年との比較</strong><p>前週比だけでなく、前年同週や過去5年の同じ時期と比べて、今の水準が多いのか少ないのかをグラフで示します。</p></li>
 <li><strong>キロリットル換算つき</strong><p>元のバレル表記に加えて、日本で馴染みのあるキロリットル換算を併記します。</p></li>
 <li><strong>人が確認して公開</strong><p>数値はEIAから自動で取得し、解説は元データと照合したうえで公開しています。</p></li>
@@ -478,6 +486,27 @@ ${chartCard(latest.data.series.utilization)}
       { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: SITE.url + '/', logo: `${SITE.url}/assets/apple-touch-icon.png` },
     ],
     lastmod: latest?.fm.updated ?? latest?.fm.date ?? latest?.data.release.jstDate,
+  });
+
+  // ----- 市場指標・世界の需給 -----
+  const dash = existsSync(path.join(p.markets, 'dashboard.json')) ? await readJson(path.join(p.markets, 'dashboard.json')) : null;
+  await page('markets/index.html', {
+    title: `原油市場の主要指標（WTI・ブレント・クラックスプレッド・CFTC建玉）｜${SITE.name}`,
+    description: 'WTIとブレントの原油価格、価格差、3-2-1クラックスプレッド、米国のガソリン・軽油価格、天然ガス価格、CFTCの投機筋の建玉など、原油市場の主要な指標を毎週まとめています。',
+    content: marketsPage(dash),
+    crumbs: [{ name: 'トップ', path: '/' }, { name: '市場指標', path: '/markets/' }],
+    withSidebar: true,
+    nav: 'markets',
+    lastmod: dash?.asOf,
+  });
+  await page('world/index.html', {
+    title: `世界の石油需給（EIA短期エネルギー見通し）｜${SITE.name}`,
+    description: '世界の石油の生産量と消費量、需給バランス（在庫の積み増し・取り崩し）、OPECと米国の原油生産量、OECDの商業在庫を、EIAの短期エネルギー見通し（STEO）のデータでグラフにしています。',
+    content: worldPage(dash),
+    crumbs: [{ name: 'トップ', path: '/' }, { name: '世界の需給', path: '/world/' }],
+    withSidebar: true,
+    nav: 'world',
+    lastmod: dash?.steoFetchedAt?.slice(0, 10),
   });
 
   // ----- ガイド -----
@@ -569,6 +598,116 @@ ${urls.map((u) => `  <url><loc>${e(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.last
   const over = sizes.filter((s) => s.total > PAGE_BUDGET);
   if (over.length) throw new Error(`300KBを超えるページがあります: ${over.map((s) => s.file).join(', ')}`);
   return { weeks: weeks.map((w) => w.week), pages: sizes.length, sizes, dist };
+}
+
+
+// ---------- 価格・市場（週ページ・トップ・専用ページ） ----------
+
+function weeklyMarketsSection(d) {
+  const m = d.markets;
+  if (!m || (!pricesOn() && !m.cftc)) return '';
+  const cards = `${pricesOn() ? priceCards(m, m.cftc ? ['wti', 'brent', 'crack321'] : ['wti', 'brent', 'spread', 'crack321']).replace('</ul>', '') : '<ul class="kpis">'}${cftcCard(m.cftc)}</ul>`;
+  const long = { wti: m.prices?.wti?.recent, brent: m.prices?.brent?.recent };
+  return `<section class="section" id="markets" aria-labelledby="mk-h">
+<h2 id="mk-h">価格と市場（同じ週）</h2>
+<p class="section-sub">在庫統計と同じ集計週（${jaDate(addDaysLocal(d.weekEnding, -6))}〜${jaDate(d.weekEnding)}）の数値です。</p>
+${cards}
+<div class="charts two">
+${pricesOn() ? `<div class="chart-card"><div class="chart-head"><h3>WTIとブレント（週平均・直近52週）</h3></div>${wtiBrentChart(long, 'wk-wb')}</div>` : ''}
+${m.cftc ? `<div class="chart-card"><div class="chart-head"><h3>投機筋の買い越し（直近52週）</h3></div>${cftcChart(m.cftc.recent, 'wk-cftc')}</div>` : ''}
+</div>
+${priceTable(m) ? `<h3>価格の一覧</h3>${priceTable(m)}` : ''}
+${m.cftc ? `<h3>CFTC建玉明細（WTI原油先物）</h3>${cftcTable(m.cftc)}` : ''}
+<div class="source-box">${marketSourceNote()}<p>より長い期間の推移は<a href="/markets/">原油市場の主要指標</a>のページをご覧ください。</p></div>
+</section>`;
+}
+
+function addDaysLocal(s, n) {
+  const d = new Date(s + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function topMarkets(latest) {
+  const m = latest?.data?.markets;
+  if (!m) return '';
+  const cards = `${pricesOn() ? priceCards(m, m.cftc ? ['wti', 'brent', 'crack321'] : ['wti', 'brent', 'spread', 'crack321']).replace('</ul>', '') : '<ul class="kpis">'}${cftcCard(m.cftc)}</ul>`;
+  return `<section class="section" aria-labelledby="tm-h">
+<h2 id="tm-h">原油価格と市場</h2>
+<p class="section-sub">${jaDate(latest.week)}までの週の平均値と前週比です。</p>
+${cards}
+<p style="margin-top:12px"><a href="/markets/">原油市場の主要指標を見る →</a>　<a href="/world/">世界の石油需給を見る →</a></p>
+</section>`;
+}
+
+function marketsPage(dash) {
+  const head = `<header class="page-head"><span class="eyebrow">MARKETS</span><h1>原油市場の主要指標</h1>
+<p class="lead">原油・石油製品の価格、精製マージンの目安、投機筋の建玉を、在庫統計と同じ週単位でまとめています。${dash ? `データは${jaDate(dash.asOf)}までです（毎週更新）。` : ''}</p></header>`;
+  if (!dash) return `${head}<p class="empty">市場データを準備中です。</p>`;
+  const L = dash.long;
+  const m = dash.latest;
+  const card = (title, chart, note = '') => `<div class="chart-card"><div class="chart-head"><h3>${e(title)}</h3></div>${chart}${note ? `<p class="note">${note}</p>` : ''}</div>`;
+  const pricesBlock = pricesOn()
+    ? `<section class="section" aria-labelledby="pr-h"><h2 id="pr-h">原油価格</h2>
+${priceCards(m)}
+<div class="charts two">
+${card('WTIとブレント（週平均・直近2年）', wtiBrentChart(L, 'mk-wb'))}
+${card('WTI−ブレントの価格差（週平均）', lineChart({ id: 'mk-sp', title: 'WTIとブレントの価格差', unit: 'ドル/バレル', digits: 2, zero: true, series: [{ name: '価格差', points: L.spread }] }), 'マイナスはWTIがブレントより安いことを示します。')}
+</div></section>
+<section class="section" aria-labelledby="pd-h"><h2 id="pd-h">石油製品と精製マージン</h2>
+${priceCards(m, ['gasolineNYH', 'ulsdNYH', 'crack321', 'henryHub'])}
+<div class="charts two">
+${card('3-2-1クラックスプレッド（週平均）', lineChart({ id: 'mk-cr', title: '3-2-1クラックスプレッド', unit: 'ドル/バレル', digits: 2, series: [{ name: 'クラックスプレッド', points: L.crack321 }] }), '原油3バレルからガソリン2バレルと軽油1バレルをつくると仮定した、1バレルあたりの粗利の目安です（NY港のスポット価格とWTIから算出）。')}
+${card('米国のガソリン・軽油の小売価格（全米平均）', lineChart({ id: 'mk-rt', title: '米国の小売価格', unit: 'ドル/ガロン', digits: 3, series: [{ name: 'ガソリン', points: L.retailGasoline ?? [] }, { name: '軽油', points: L.retailDiesel ?? [] }] }))}
+${card('天然ガス（ヘンリーハブ、週平均）', lineChart({ id: 'mk-hh', title: '天然ガス価格', unit: 'ドル/百万Btu', digits: 2, series: [{ name: 'ヘンリーハブ', points: L.henryHub ?? [] }] }))}
+</div>
+<h3>価格の一覧（${jaDate(dash.week)}までの週）</h3>${priceTable(m)}</section>`
+    : `<p class="empty">価格データは現在掲載していません。</p>`;
+  const cftcBlock = m.cftc
+    ? `<section class="section" aria-labelledby="cf-h"><h2 id="cf-h">投機筋の建玉（CFTC）</h2>
+<p class="section-sub">米商品先物取引委員会（CFTC）が毎週公表する、WTI原油先物（NYMEX）の参加者別の建玉です。</p>
+<div class="charts two">
+${card('マネージドマネーの買い越し（直近2年）', cftcChart(L.cftc, 'mk-cf'))}
+<div class="chart-card">${cftcTable(m.cftc)}</div>
+</div></section>`
+    : '';
+  return `${head}${pricesBlock}${cftcBlock}
+<section class="section" aria-labelledby="ex-h"><h2 id="ex-h">そのほかの主要な指標</h2>
+<p class="section-sub">本サイトでは自動取得していないものの、原油市場を見るうえで重要な指標です。発表元のページでご確認ください。</p>
+${externalTable()}</section>
+<div class="source-box">${marketSourceNote()}<p>${e(SITE.disclaimerShort)}価格や建玉の動きは、将来の価格を示すものではありません。</p></div>
+<section class="section" aria-labelledby="mg-h"><h2 id="mg-h">指標の読み方</h2><p><a href="/guide/crude-benchmarks/">原油価格の指標（WTI・ブレント・ドバイ）</a>　｜　<a href="/guide/crack-spread/">クラックスプレッドとは</a>　｜　<a href="/guide/cftc-positions/">CFTC建玉明細の読み方</a></p></section>`;
+}
+
+const ym = (p) => `${p.slice(0, 4)}年${Number(p.slice(5, 7))}月`;
+
+function worldPage(dash) {
+  const head = `<header class="page-head"><span class="eyebrow">WORLD</span><h1>世界の石油需給</h1>
+<p class="lead">米エネルギー情報局（EIA）の短期エネルギー見通し（STEO）による、世界の石油の生産量・消費量と在庫の動きです。将来の月はEIAによる予測値で、本サイトの予測ではありません。</p></header>`;
+  const S = dash?.steo;
+  if (!S?.worldSupply?.length) return `${head}<p class="empty">データを準備中です。</p>`;
+  const last = (k) => S[k].filter((r) => !r.forecast).at(-1);
+  const card = (title, chart, note = '') => `<div class="chart-card"><div class="chart-head"><h3>${e(title)}</h3></div>${chart}${note ? `<p class="note">${note}</p>` : ''}</div>`;
+  const ls = last('worldSupply');
+  const ld = last('worldDemand');
+  const lb = S.balance.filter((r) => !r.forecast).at(-1);
+  return `${head}
+<ul class="kpis">
+<li class="kpi"><span class="kpi-label">世界の生産量<span class="kpi-tag">${ym(ls.period)}</span></span><span class="kpi-value">${fmtNum(ls.value, 1)}<span class="kpi-unit">百万バレル/日</span></span></li>
+<li class="kpi"><span class="kpi-label">世界の消費量<span class="kpi-tag">${ym(ld.period)}</span></span><span class="kpi-value">${fmtNum(ld.value, 1)}<span class="kpi-unit">百万バレル/日</span></span></li>
+<li class="kpi"><span class="kpi-label">需給バランス<span class="kpi-tag">生産−消費</span></span><span class="kpi-value">${lb.value >= 0 ? '+' : '−'}${fmtNum(Math.abs(lb.value), 2)}<span class="kpi-unit">百万バレル/日</span></span><span class="kpi-sub">${lb.value >= 0 ? '供給超過（在庫の積み増し）' : '需要超過（在庫の取り崩し）'}</span></li>
+<li class="kpi"><span class="kpi-label">OECDの商業在庫<span class="kpi-tag">${ym(last('oecdStocks').period)}</span></span><span class="kpi-value">${fmtNum(last('oecdStocks').value, 0)}<span class="kpi-unit">百万バレル</span></span></li>
+</ul>
+<p class="kpi-foot">各カードは実績・推計の最新月の値です。</p>
+<div class="charts two">
+${card('世界の生産量と消費量（月次）', lineChart({ id: 'w-sd', title: '世界の液体燃料の生産量と消費量', unit: '百万バレル/日', digits: 2, series: [{ name: '生産量', points: S.worldSupply }, { name: '消費量', points: S.worldDemand }] }))}
+${card('需給バランス（生産量−消費量）', barChart({ id: 'w-bal', title: '世界の需給バランス', unit: '百万バレル/日', digits: 2, points: S.balance, caption: '<span><i class="key key-up"></i>供給超過（在庫が増える方向）</span><span><i class="key key-down"></i>需要超過（在庫が減る方向）</span><span>薄い色は予測</span>' }))}
+${card('OPECと米国の原油生産量', lineChart({ id: 'w-prod', title: 'OPECと米国の原油生産量', unit: '百万バレル/日', digits: 2, series: [{ name: 'OPEC', points: S.opecCrude }, { name: '米国', points: S.usCrude }] }))}
+${card('OECDの商業在庫（期末）', lineChart({ id: 'w-oecd', title: 'OECDの商業在庫', unit: '百万バレル', digits: 0, series: [{ name: 'OECD商業在庫', points: S.oecdStocks }] }))}
+</div>
+<div class="source-box"><p>出典：<a href="https://www.eia.gov/outlooks/steo/" rel="noopener">U.S. Energy Information Administration, Short-Term Energy Outlook</a>${dash.steoFetchedAt ? `（${jaDate(dash.steoFetchedAt.slice(0, 10))}取得）` : ''}。液体燃料には原油のほか、天然ガス液（NGL）、バイオ燃料などを含みます。</p>
+<p>予測値はEIAが毎月改定します。直近の月の「実績」にも推計値が含まれます。${e(SITE.disclaimerShort)}</p></div>
+<section class="section" aria-labelledby="wg-h"><h2 id="wg-h">読み方</h2><p><a href="/guide/world-balance/">世界の石油需給の見方（STEO・IEA・OPEC月報）</a></p></section>`;
 }
 
 /** 週ごとの解説の更新情報（Atom） */

@@ -15,6 +15,8 @@
    - `series.<key>.value / change / yoyPct / pctAvg5 / rangePos` などと本文の数字を1つずつ照合する
    - 単位：在庫は千バレル（MBBL）、流量は千バレル/日（MBBL/D）、稼働率は%。「万バレル」は千バレル÷10
    - キロリットル換算は 1バレル＝158.987294928リットル
+   - 「価格と市場」の段落は `markets.prices / markets.derived / markets.cftc` と照合する（価格はドル、CFTCは枚。1枚＝1,000バレル）
+   - `markets` が null の週は、価格・建玉の取得に失敗している。`npm run fetch:markets && npm run markets && node scripts/analyze.mjs --force --weeks 1` で作り直してから照合する
 3. **下書きを自然な日本語の解説（800〜1,200字）に仕上げる。冒頭は3行の要約**
    - 3行の要約はフロントマターの `summary`（ちょうど3項目）に書く。本文の文字数に要約は含めない
    - 下書きの機械的な文の羅列を、読みやすい文章に整理する（主要項目：原油・ガソリン・留出油・稼働率を中心に）
@@ -27,6 +29,8 @@
 5. **投資助言にあたる表現がないか確認する**
    - 禁止：売買の推奨やタイミング（「買い」「売り時」「〜すべき」）、価格の予想・断定（「上昇するだろう」「下落は必至」）
    - 事実とデータの説明にとどめる（「〜した」「〜を上回った」）。相場への影響に触れる場合も断定しない
+   - 価格の変動理由を在庫の増減だけで説明しない（「在庫が減ったので価格が上がった」と因果を断定しない）
+   - CFTCの建玉は「投機筋が強気」などの評価語を使わず、買い越しの枚数と増減の事実だけを書く
 6. **【要確認】の印と下書きのフラグを外し、`npm run build` と `npm test` を実行する**
    - 本文冒頭の「> 【要確認】 この解説は…」の行は丸ごと削除する。ほかの【要確認】もすべて消す
    - フロントマターを `draft: false` にする。公開日を `date: YYYY-MM-DD`（日本時間）で追加する
@@ -41,7 +45,9 @@
 
 - `config/series.mjs` 取得する系列（ID・日本語名）の一元管理
 - `config/site.mjs` サイト名・URL・GA4 ID・広告枠・運営者情報
-- `scripts/fetch.mjs` → `analyze.mjs` → `draft.mjs` → `build.mjs` の順に処理する
+- `config/markets.mjs` 価格・CFTC・STEO の系列定義と、自動取得していない外部指標の一覧
+- `scripts/fetch.mjs` → `fetch-markets.mjs` → `markets.mjs` → `analyze.mjs` → `draft.mjs` → `build.mjs` の順に処理する
+- `study/` は監修者用の学習テキスト（非公開。ビルドには含まれない）
 - `draft: true` の週、または【要確認】が残っている週はビルドで出力されない
 - 自動処理が触るのは `data/` と `content/weekly/` だけ。人が仕上げた `content/weekly/*.md` は上書きされない
 

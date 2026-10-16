@@ -8,6 +8,7 @@ import path from 'node:path';
 import { SERIES, PRIMARY_KEY } from '../config/series.mjs';
 import { paths, readJson, writeJson, existsSync, isMain, setActionOutput } from './lib/io.mjs';
 import { addDays, diffDays, shiftYears, releaseSchedule, latestExpectedWeekEnding } from './lib/dates.mjs';
+import { loadMarketRaw, weeklyMarkets } from './markets.mjs';
 
 const YEARS = 5;
 const RECENT_WEEKS = 52;
@@ -132,7 +133,7 @@ export function isWeekComplete(rawByKey, week) {
   return SERIES.every((s) => rawByKey[s.key]?.data?.some((r) => r.period === week));
 }
 
-export function analyzeWeek(rawByKey, week, now = new Date()) {
+export function analyzeWeek(rawByKey, week, now = new Date(), marketRaw = null) {
   const series = {};
   for (const s of SERIES) series[s.key] = analyzeSeries(s, rawByKey[s.key].data, week);
   return {
@@ -142,6 +143,7 @@ export function analyzeWeek(rawByKey, week, now = new Date()) {
     generatedAt: now.toISOString(),
     source: 'U.S. Energy Information Administration (EIA), Weekly Petroleum Status Report',
     series,
+    markets: marketRaw ? weeklyMarkets(marketRaw, week) : null,
   };
 }
 
@@ -162,6 +164,7 @@ export async function loadRaw() {
 export async function run({ weeks = 1, force = false, now = new Date(), log = console.log } = {}) {
   const p = paths();
   const raw = await loadRaw();
+  const marketRaw = await loadMarketRaw();
   const primary = raw[PRIMARY_KEY].data.map((r) => r.period);
   // 全系列がそろっている週のうち新しいものから weeks 週
   const complete = primary.filter((w) => isWeekComplete(raw, w));
@@ -177,7 +180,7 @@ export async function run({ weeks = 1, force = false, now = new Date(), log = co
   for (const w of targets) {
     const file = path.join(p.weekly, `${w}.json`);
     if (existsSync(file) && !force) continue;
-    await writeJson(file, analyzeWeek(raw, w, now));
+    await writeJson(file, analyzeWeek(raw, w, now, marketRaw));
     created.push(w);
     log(`作成: data/weekly/${w}.json`);
   }

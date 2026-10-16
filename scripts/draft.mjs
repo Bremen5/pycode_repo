@@ -7,7 +7,8 @@ import { SERIES, seriesByKey } from '../config/series.mjs';
 import { paths, readJson, writeText, listWeeks, existsSync, isMain, setActionOutput } from './lib/io.mjs';
 import { jaDate } from './lib/dates.mjs';
 import { stringifyFrontMatter } from './lib/markdown.mjs';
-import { fmtNum, fmtOkuMan, mbblToKl } from './lib/units.mjs';
+import { fmtNum, fmtOkuMan, mbblToKl, fmtPrice } from './lib/units.mjs';
+import { SITE } from '../config/site.mjs';
 
 export const REVIEW_MARK = '【要確認】';
 
@@ -130,6 +131,36 @@ function pointLine(a) {
   return `- **${s.shortJa}**：${parts.join('。')}`;
 }
 
+// ---------- 価格と市場 ----------
+
+const usd = (v) => `${fmtNum(Math.abs(v), 2)}ドル`;
+const moveWord = (d) => (d > 0 ? '上昇' : d < 0 ? '下落' : '横ばい');
+
+/** 価格と建玉の段落（事実の記述のみ。因果や見通しは書かない） */
+export function marketsParagraphs(m) {
+  if (!m) return [];
+  const out = [];
+  const P = m.prices ?? {};
+  if (SITE.prices?.enabled !== false && P.wti) {
+    const s = [];
+    s.push(`WTI原油のスポット価格（クッシング）は週平均で1バレル${fmtPrice(P.wti.value, 'USD/bbl', { withUnit: false })}ドルと、前週から${P.wti.change === 0 ? '横ばいでした' : `${usd(P.wti.change)}${moveWord(P.wti.change)}しました`}。`);
+    if (P.brent) s.push(`ブレント原油は${fmtPrice(P.brent.value, 'USD/bbl', { withUnit: false })}ドル（前週比${P.brent.change >= 0 ? '+' : '−'}${usd(P.brent.change)}）でした。`);
+    if (m.derived?.spread) s.push(`WTIとブレントの価格差は${m.derived.spread.value < 0 ? `WTIが${usd(m.derived.spread.value)}安い` : `WTIが${usd(m.derived.spread.value)}高い`}水準です。`);
+    out.push(s.join(''));
+    const t = [];
+    if (m.derived?.crack321) t.push(`NY港のガソリン・軽油価格とWTIから計算した3-2-1クラックスプレッド（精製マージンの目安）は1バレル${fmtNum(m.derived.crack321.value, 2)}ドルで、前週から${usd(m.derived.crack321.change)}${moveWord(m.derived.crack321.change)}しました。`);
+    if (P.retailGasoline) t.push(`米国のガソリン小売価格（全米平均）は1ガロン${fmtNum(P.retailGasoline.value, 3)}ドルでした。`);
+    if (t.length) out.push(t.join(''));
+  }
+  const c = m.cftc;
+  if (c) {
+    out.push(
+      `米商品先物取引委員会（CFTC）の建玉明細（${jaDate(c.period)}時点）によると、WTI原油先物のマネージドマネー（ヘッジファンドなど）の買い越しは${fmtNum(c.net)}枚で、前週から${fmtNum(Math.abs(c.change ?? 0))}枚${(c.change ?? 0) >= 0 ? '増えました' : '減りました'}。`,
+    );
+  }
+  return out;
+}
+
 // ---------- 下書き全体 ----------
 
 export function buildSummary(w) {
@@ -182,6 +213,7 @@ export function buildDraft(w) {
     '',
     flowSentence(S.utilization, '製油所の稼働率'),
     '',
+    ...(marketsParagraphs(w.markets).length ? ['## 価格と市場', '', ...marketsParagraphs(w.markets).flatMap((p) => [p, '']), ] : []),
     '## 背景',
     '',
     `${REVIEW_MARK} 変化が大きかった項目について、公開情報（EIAの週報本文、製油所の稼働やハリケーンなどに関する報道）で確認できる背景があれば、出典リンクを付けて補足する。確認できなければこの節を削除する。出典のない推測は書かない。`,

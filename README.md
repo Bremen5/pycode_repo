@@ -22,6 +22,8 @@
 | コマンド | 内容 |
 |---|---|
 | `npm run fetch` | EIA API から取得（初回は過去10年分、以後は直近8週を取り直して追加）。`EIA_API_KEY` が必要 |
+| `npm run fetch:markets` | 価格（EIAのスポット・小売価格）、STEO（世界の需給）、CFTC建玉を取得 |
+| `npm run markets` | 市場指標ページ用の `data/markets/dashboard.json` を作成 |
 | `npm run analyze` | 最新週の比較データ `data/weekly/YYYY-MM-DD.json` を作成（`-- --weeks 4` で直近4週） |
 | `npm run draft` | 下書き `content/weekly/YYYY-MM-DD.md` を作成（`draft: true`・【要確認】付き） |
 | `npm run update` | 上の3つを順に実行 |
@@ -71,10 +73,11 @@ tests/               node:test の単体テスト（合成データを使用）
 ## 公開前のチェックリスト
 
 1. `config/site.mjs` の `url`・`operator`（運営者名・連絡先）・`ga4Id` を本番の値にする
-2. 広告を契約するまでは `ads.enabled` を `false` にする（仮の広告枠を出さない）
-3. `npm run verify-series` で系列IDを確認し、`npm run fetch` で実データを取得する
-4. 最初の週の解説を仕上げて `draft: false` にする
-5. `npm run check:launch` がすべて通ることを確認する
+2. 価格データ（EIAのスポット価格）の利用条件を確認し、`prices.licenseConfirmed` を `true` にする（掲載しないなら `prices.enabled` を `false`）
+3. 広告を契約するまでは `ads.enabled` を `false` にする（仮の広告枠を出さない）
+4. `npm run verify-series` で系列IDを確認し、`npm run fetch` で実データを取得する
+5. 最初の週の解説を仕上げて `draft: false` にする
+6. `npm run check:launch` がすべて通ることを確認する
 
 ## 注意
 

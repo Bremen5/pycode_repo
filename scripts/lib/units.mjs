@@ -85,3 +85,37 @@ export function fmtPct(p, digits = 1) {
 export function unitLabel(series) {
   return { stock: '千バレル', flow: '千バレル/日', percent: '%' }[series.kind];
 }
+
+// ---- 価格 ----
+const PRICE_UNIT = {
+  'USD/bbl': { ja: 'ドル/バレル', digits: 2 },
+  'USD/gal': { ja: 'ドル/ガロン', digits: 3 },
+  'USD/MMBtu': { ja: 'ドル/百万Btu', digits: 2 },
+};
+
+export function priceUnitJa(unit) {
+  return PRICE_UNIT[unit]?.ja ?? unit;
+}
+
+/** 価格の表示（例: '64.98ドル/バレル'） */
+export function fmtPrice(v, unit, { withUnit = true } = {}) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const u = PRICE_UNIT[unit] ?? { ja: unit, digits: 2 };
+  return `${v < 0 ? '−' : ''}${fmtNum(Math.abs(v), u.digits)}${withUnit ? u.ja : ''}`;
+}
+
+/** 価格の変化（例: '+0.40ドル'） */
+export function fmtPriceChange(d, unit) {
+  if (d == null || Number.isNaN(d)) return '—';
+  const u = PRICE_UNIT[unit] ?? { digits: 2 };
+  const r = Math.round(d * 10 ** u.digits) / 10 ** u.digits;
+  const sign = r > 0 ? '+' : r < 0 ? '−' : '±';
+  return `${sign}${fmtNum(Math.abs(d), u.digits)}ドル`;
+}
+
+/** 先物の枚数（例: '188,528枚'） */
+export function fmtContracts(n, { sign = false } = {}) {
+  if (n == null || Number.isNaN(n)) return '—';
+  const s = sign ? (n > 0 ? '+' : n < 0 ? '−' : '±') : n < 0 ? '−' : '';
+  return `${s}${fmtNum(Math.abs(n))}枚`;
+}

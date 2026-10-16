@@ -9,9 +9,11 @@
   },
   "scripts": {
     "fetch": "node scripts/fetch.mjs",
+    "fetch:markets": "node scripts/fetch-markets.mjs",
     "analyze": "node scripts/analyze.mjs",
     "draft": "node scripts/draft.mjs",
-    "update": "node scripts/fetch.mjs && node scripts/analyze.mjs && node scripts/draft.mjs",
+    "markets": "node scripts/markets.mjs",
+    "update": "node scripts/fetch.mjs && node scripts/fetch-markets.mjs; node scripts/markets.mjs && node scripts/analyze.mjs && node scripts/draft.mjs",
     "verify-series": "node scripts/verify-series.mjs",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/build.mjs --drafts --out dist-preview",

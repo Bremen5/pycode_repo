@@ -170,3 +170,123 @@ export function sparkline(a, { weeks = 26 } = {}) {
   const d = pts.map((r, i) => `${f1(x(i))},${f1(y(r.value))}`).join(' ');
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="直近${pts.length}週の推移"><polyline class="line" points="${d}" vector-effect="non-scaling-stroke"/></svg>`;
 }
+
+/** 横軸のラベル（週次 'YYYY-MM-DD' は月、月次 'YYYY-MM' は年） */
+function xLabels(periods, x) {
+  if (periods[0]?.length === 7) {
+    const out = [];
+    periods.forEach((p, i) => {
+      if (p.endsWith('-01')) out.push({ x: x(i), label: `${p.slice(0, 4)}年` });
+    });
+    const kept = [];
+    for (const m of out) if (!kept.length || m.x - kept.at(-1).x >= 44) kept.push(m);
+    return kept;
+  }
+  const span = periods.length;
+  const out = [];
+  let lastMonth = null;
+  periods.forEach((p, i) => {
+    const m = Number(p.slice(5, 7));
+    if (m !== lastMonth) {
+      if (lastMonth !== null) out.push({ x: x(i), label: m === 1 ? `${p.slice(2, 4)}年1月` : `${m}月`, m });
+      lastMonth = m;
+    }
+  });
+  const step = span > 60 ? 3 : span > 30 ? 2 : 1;
+  const filtered = out.filter((o) => (o.m - 1) % step === 0);
+  const kept = [];
+  for (const m of filtered) if (!kept.length || m.x - kept.at(-1).x >= (Math.max(kept.at(-1).label.length, m.label.length) > 3 ? 62 : 34)) kept.push(m);
+  return kept;
+}
+
+/**
+ * 汎用の折れ線グラフ（1〜3系列）。予測値（forecast: true）は破線で描く
+ * spec: { id, title, desc, unit, digits, series: [{ name, points: [{period, value, forecast}] }], zero, keys: 凡例を出すか }
+ */
+export function lineChart(spec) {
+  const { id, title, unit, digits = 1, zero = false } = spec;
+  const series = spec.series.filter((s) => s.points?.length >= 2);
+  if (!series.length) return '';
+  const periods = [...new Set(series.flatMap((s) => s.points.map((p) => p.period)))].sort();
+  const idx = new Map(periods.map((p, i) => [p, i]));
+  const vals = series.flatMap((s) => s.points.map((p) => p.value)).filter((v) => v != null);
+  if (zero) vals.push(0);
+  const { lo, hi, ticks } = niceTicks(Math.min(...vals), Math.max(...vals));
+  const iw = W - M.left - M.right;
+  const ih = H - M.top - M.bottom;
+  const x = (i) => M.left + (periods.length === 1 ? iw / 2 : (i / (periods.length - 1)) * iw);
+  const y = (v) => M.top + ih - ((v - lo) / (hi - lo)) * ih;
+  const step = iw / Math.max(1, periods.length - 1);
+  const path = (pts) => `M${pts.map((p) => `${f1(x(idx.get(p.period)))},${f1(y(p.value))}`).join('L')}`;
+  const lines = series
+    .map((s, k) => {
+      const hist = s.points.filter((p) => !p.forecast);
+      const fc = s.points.filter((p) => p.forecast);
+      const fcPath = fc.length ? path([...(hist.length ? [hist.at(-1)] : []), ...fc]) : '';
+      return `${hist.length >= 2 ? `<path class="line s${k + 1}" d="${path(hist)}"/>` : ''}${fcPath ? `<path class="line s${k + 1} fc" d="${fcPath}"/>` : ''}`;
+    })
+    .join('');
+  const fcStart = series[0].points.find((p) => p.forecast);
+  const shade = fcStart
+    ? `<rect class="fc-zone" x="${f1(x(idx.get(fcStart.period)))}" y="${M.top}" width="${f1(W - M.right - x(idx.get(fcStart.period)))}" height="${ih}"/><text class="tick" x="${f1(W - M.right - 2)}" y="${M.top + 12}" text-anchor="end">予測</text>`
+    : '';
+  const byPeriod = periods.map((p) => series.map((s) => s.points.find((q) => q.period === p)));
+  const tips = periods
+    .map((p, i) => {
+      const parts = byPeriod[i].map((pt, k) => (pt ? `${series[k].name} ${fmtNum(pt.value, digits)}` : null)).filter(Boolean);
+      const fc = byPeriod[i].some((pt) => pt?.forecast) ? '（予測）' : '';
+      return `<rect x="${f1(x(i) - step / 2)}" y="${M.top}" width="${f1(Math.max(step, 2))}" height="${ih}"><title>${escapeHtml(`${p} ${parts.join('／')}${unit ? ` ${unit}` : ''}${fc}`)}</title></rect>`;
+    })
+    .join('');
+  const legend = series.length > 1 || spec.keys
+    ? `<figcaption>${series.map((s, k) => `<span><i class="key key-s${k + 1}"></i>${escapeHtml(s.name)}</span>`).join('')}${fcStart ? '<span><i class="key key-fc"></i>予測（EIA）</span>' : ''}</figcaption>`
+    : fcStart ? '<figcaption><span><i class="key key-fc"></i>予測（EIA）</span></figcaption>' : '';
+  const last = series.map((s) => s.points.at(-1));
+  return `<figure class="chart">
+<svg viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t-${id} d-${id}" preserveAspectRatio="xMidYMid meet">
+<title id="t-${id}">${escapeHtml(title)}</title>
+<desc id="d-${id}">${escapeHtml(spec.desc ?? `${series.map((s, k) => `${s.name}の最新値は${last[k].period}の${fmtNum(last[k].value, digits)}`).join('、')}。単位は${unit}。`)}</desc>
+${shade}
+${ticks.map((t) => `<line class="${t === 0 && zero ? 'zero' : 'grid'}" x1="${M.left}" x2="${W - M.right}" y1="${f1(y(t))}" y2="${f1(y(t))}"/><text class="tick" x="${M.left - 6}" y="${f1(y(t) + 4)}" text-anchor="end">${fmtNum(t, Math.abs(hi - lo) < 10 ? 1 : 0)}</text>`).join('\n')}
+${xLabels(periods, x).map((m) => `<text class="tick" x="${f1(m.x)}" y="${H - 8}" text-anchor="middle">${m.label}</text>`).join('\n')}
+<text class="tick" x="4" y="13">${escapeHtml(unit)}</text>
+${lines}
+<g class="hit">${tips}</g>
+</svg>
+${legend}
+</figure>`;
+}
+
+/** 汎用の棒グラフ（プラスとマイナスで色を分ける。予測値は薄く） */
+export function barChart(spec) {
+  const { id, title, unit, digits = 1, points } = spec;
+  if (!points?.length) return '';
+  const h = 210;
+  const vals = points.map((p) => p.value);
+  const { lo, hi, ticks } = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals), 4);
+  const iw = W - M.left - M.right;
+  const ih = h - M.top - M.bottom;
+  const y = (v) => M.top + ih - ((v - lo) / (hi - lo)) * ih;
+  const slot = iw / points.length;
+  const bw = Math.max(1, slot - (points.length > 60 ? 1 : 3));
+  const x = (i) => M.left + i * slot + slot / 2;
+  const bars = points
+    .map((p, i) => {
+      const y0 = y(0);
+      const y1 = y(p.value);
+      return `<rect class="${p.value >= 0 ? 'bar-up' : 'bar-down'}${p.forecast ? ' fc' : ''}" x="${f1(M.left + i * slot + (slot - bw) / 2)}" y="${f1(Math.min(y0, y1))}" width="${f1(bw)}" height="${f1(Math.max(0.8, Math.abs(y1 - y0)))}"><title>${escapeHtml(`${p.period} ${p.value >= 0 ? '+' : '−'}${fmtNum(Math.abs(p.value), digits)} ${unit}${p.forecast ? '（予測）' : ''}`)}</title></rect>`;
+    })
+    .join('');
+  const periods = points.map((p) => p.period);
+  return `<figure class="chart">
+<svg viewBox="0 0 ${W} ${h}" role="img" aria-labelledby="t-${id} d-${id}" preserveAspectRatio="xMidYMid meet">
+<title id="t-${id}">${escapeHtml(title)}</title>
+<desc id="d-${id}">${escapeHtml(spec.desc ?? `${title}。最新は${points.at(-1).period}の${fmtNum(points.at(-1).value, digits)}${unit}。`)}</desc>
+${ticks.map((t) => `<line class="${t === 0 ? 'zero' : 'grid'}" x1="${M.left}" x2="${W - M.right}" y1="${f1(y(t))}" y2="${f1(y(t))}"/><text class="tick" x="${M.left - 6}" y="${f1(y(t) + 4)}" text-anchor="end">${fmtNum(t, Math.abs(hi - lo) < 10 ? 1 : 0)}</text>`).join('\n')}
+${xLabels(periods, x).map((m) => `<text class="tick" x="${f1(m.x)}" y="${h - 8}" text-anchor="middle">${m.label}</text>`).join('\n')}
+<text class="tick" x="4" y="13">${escapeHtml(unit)}</text>
+${bars}
+</svg>
+<figcaption>${spec.caption ?? `<span><i class="key key-up"></i>プラス</span><span><i class="key key-down"></i>マイナス</span>`}</figcaption>
+</figure>`;
+}

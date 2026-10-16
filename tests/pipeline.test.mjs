@@ -55,6 +55,9 @@ test('初回：直近4週分を作り、下書きはビルドに出ない。仕�
   assert.ok(html.includes('kL'));
   assert.ok(html.includes('<svg'));
   assert.ok(!html.includes(REVIEW_MARK));
+  // 価格と市場（同じ週）
+  assert.ok(html.includes('id="markets"'));
+  assert.ok(html.includes('CFTC'));
   // 次回発表：10/9週は祝日（コロンブスデー）で木曜に遅れる
   assert.ok(html.includes('2026年10月16日（金）00:00'));
   assert.ok(html.includes('通常より遅れる見込み'));
@@ -66,7 +69,7 @@ test('初回：直近4週分を作り、下書きはビルドに出ない。仕�
   const sitemap = await readFile(path.join(dir, 'dist/sitemap.xml'), 'utf8');
   assert.ok(sitemap.includes(`/weekly/${LAST}/`));
   assert.ok(!sitemap.includes('/weekly/2026-09-25/'));
-  for (const f of ['index.html', '404.html', 'about.html', 'privacy.html', 'disclaimer.html', 'guide/index.html']) {
+  for (const f of ['index.html', '404.html', 'about.html', 'privacy.html', 'disclaimer.html', 'guide/index.html', 'markets/index.html', 'world/index.html', 'feed.xml']) {
     assert.ok(existsSync(path.join(dir, 'dist', f)), f);
   }
   for (const s of b.sizes) assert.ok(s.total <= PAGE_BUDGET, `${s.file} ${s.total}`);

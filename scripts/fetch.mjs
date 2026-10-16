@@ -13,8 +13,8 @@ const HISTORY_YEARS = 10;
 const REFRESH_WEEKS = 8;
 const PAGE_LENGTH = 5000; // EIA API v2 の1回あたりの上限
 
-export function buildUrl(seriesId, { apiKey, start, offset = 0 }) {
-  const u = new URL(`${EIA_API_BASE}/seriesid/PET.${seriesId}.W`);
+export function buildUrl(seriesId, { apiKey, start, offset = 0, route }) {
+  const u = new URL(`${EIA_API_BASE}/seriesid/${route ?? `PET.${seriesId}.W`}`);
   u.searchParams.set('api_key', apiKey);
   if (start) u.searchParams.set('start', start);
   u.searchParams.set('length', String(PAGE_LENGTH));
@@ -22,9 +22,9 @@ export function buildUrl(seriesId, { apiKey, start, offset = 0 }) {
   return u;
 }
 
-const redact = (s) => String(s).replace(/api_key=[^&\s]+/g, 'api_key=***');
+export const redact = (s) => String(s).replace(/api_key=[^&\s]+/g, 'api_key=***');
 
-async function getJson(url, { retries = 4, fetchImpl = fetch } = {}) {
+export async function getJson(url, { retries = 4, fetchImpl = fetch } = {}) {
   let lastErr;
   for (let i = 0; i <= retries; i++) {
     try {
@@ -46,7 +46,7 @@ export function normalizeRows(rows) {
   const out = [];
   for (const r of rows ?? []) {
     const value = r.value === null || r.value === '' ? NaN : Number(r.value);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.period) || !Number.isFinite(value)) continue;
+    if (!/^\d{4}-\d{2}(-\d{2})?$/.test(r.period) || !Number.isFinite(value)) continue;
     out.push({ period: r.period, value });
   }
   return out.sort((a, b) => a.period.localeCompare(b.period));
@@ -66,7 +66,7 @@ export async function fetchSeries(series, { apiKey, start, fetchImpl }) {
   const seen = new Set();
   let meta = {};
   for (let offset = 0; ; ) {
-    const json = await getJson(buildUrl(series.id, { apiKey, start, offset }), { fetchImpl });
+    const json = await getJson(buildUrl(series.id, { apiKey, start, offset, route: series.route }), { fetchImpl });
     const resp = json.response ?? {};
     const data = resp.data ?? [];
     if (data[0]) {
